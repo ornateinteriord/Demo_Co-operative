@@ -416,11 +416,11 @@ export const useUpdateMember = () => {
   });
 };
 
-export const useGetTransactionDetails = (status = "all") => {
+export const useGetTransactionDetails = (status = "all", type = "all") => {
   return useQuery({
-    queryKey: ["transactionsWithConfig", status],
+    queryKey: ["transactionsWithConfig", status, type],
     queryFn: async () => {
-      const response = await get(`/user/transactions?status=${status}`);
+      const response = await get(`/user/transactions?status=${status}&type=${type}`);
 
       if (response.success) {
         return response;

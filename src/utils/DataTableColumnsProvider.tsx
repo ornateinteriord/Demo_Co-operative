@@ -241,44 +241,66 @@ export const getDailyPayoutColumns = () => [
 export const getTransactionColumns = () => [
   {
     name: "Date",
-    selector: (row: any) => getFormattedDate(row.transaction_date),
+    selector: (row: any) => getFormattedDate(row.transaction_date || row.createdAt),
     sortable: true,
+    width: "120px"
   },
   {
     name: "Description",
-    selector: (row: any) => row.description,
+    selector: (row: any) => row.description || "-",
     sortable: true,
+    wrap: true,
   },
   {
     name: "Credit",
-    selector: (row: any) => row.ew_credit ? `₹ ${parseFloat(row.ew_credit).toLocaleString()}` : "-",
+    selector: (row: any) => {
+      const amt = row.ew_credit || row.credit;
+      return amt && parseFloat(amt) > 0 ? `₹ ${parseFloat(amt).toLocaleString('en-IN')}` : "-";
+    },
     sortable: true,
+    style: { color: '#059669', fontWeight: 'bold' }
   },
   {
     name: "Debit",
-    selector: (row: any) => row.ew_debit ? `₹ ${parseFloat(row.ew_debit).toLocaleString()}` : "-",
+    selector: (row: any) => {
+      const amt = row.ew_debit || row.debit;
+      return amt && parseFloat(amt) > 0 ? `₹ ${parseFloat(amt).toLocaleString('en-IN')}` : "-";
+    },
     sortable: true,
+    style: { color: '#dc2626', fontWeight: 'bold' }
   },
   {
-    name: "Due Amount",
-    selector: (row: any) => row.net_amount ? `₹ ${parseFloat(row.net_amount).toLocaleString()}` : "-",
+    name: "Balance",
+    selector: (row: any) => {
+      const amt = row.balance || row.net_amount || row.previous_balance;
+      return amt ? `₹ ${parseFloat(amt).toLocaleString('en-IN')}` : "-";
+    },
     sortable: true,
+    style: { fontWeight: 'bold', color: '#1e293b' }
   },
   {
     name: "Status",
     selector: (row: any) => row.status,
     sortable: true,
-    cell: (row: any) => (
-      <div
-        style={{
-          color: row.status?.toLowerCase() === "active" ? "#569f35" : "#ff3860",
-          padding: "5px 10px",
-          borderRadius: "4px",
-        }}
-      >
-        {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
-      </div>
-    ),
+    cell: (row: any) => {
+      const status = row.status?.toLowerCase() || 'pending';
+      const isActive = status === 'active' || status === 'completed' || status === 'approved';
+      return (
+        <div
+          style={{
+            color: isActive ? "#059669" : "#dc2626",
+            backgroundColor: isActive ? "#ecfdf5" : "#fef2f2",
+            padding: "4px 12px",
+            borderRadius: "12px",
+            fontSize: "12px",
+            fontWeight: 800,
+            textTransform: 'uppercase'
+          }}
+        >
+          {status}
+        </div>
+      );
+    },
   },
 ];
 

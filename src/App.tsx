@@ -195,6 +195,7 @@ const UserWallet = lazy(() => import("./pages/User-Pages/Wallet/Wallet"));
 const UserSupportChat = lazy(() => import("./pages/User-Pages/SupportChat/SupportChat"));
 const UserChat = lazy(() => import("./pages/User-Pages/Chat/Chat"));
 const UserOverdraft = lazy(() => import("./pages/User-Pages/Overdraft/Overdraft"));
+const UserAccountOpening = lazy(() => import("./pages/User-Pages/AccountOpening/AccountOpening"));
 
 
 
@@ -541,6 +542,7 @@ const RoutesProvider = ({
               <Route path="/user/support-chat" element={<UserSupportChat />} />
               <Route path="/user/chat" element={<UserChat />} />
               <Route path="/user/overdraft" element={<UserOverdraft />} />
+              <Route path="/user/account-opening/:type" element={<UserAccountOpening />} />
 
 
             </Route>

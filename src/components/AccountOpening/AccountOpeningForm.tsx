@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -18,20 +19,17 @@ import {
 import PersonIcon from '@mui/icons-material/Person';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { toast } from 'react-toastify';
-import {
-  useGetAccountGroups,
-  useGetInterestsByAccountGroup,
-  useGetMemberById,
-  useCreateAccount,
-  useGetAllAgents,
-  useGetAgentById,
-} from '../../queries/admin';
+import * as AdminQueries from '../../queries/admin';
+import * as MemberQueries from '../../queries/Member';
 
 export type AccountType = 'SB' | 'CA' | 'RD' | 'FD' | 'PIGMY' | 'MIS' | string;
 
 interface Props {
   defaultAccountType?: AccountType;
   title?: string;
+  prefillMemberId?: string;
+  readOnlyMemberId?: boolean;
+  isUser?: boolean;
 }
 
 // Modern Input Styles - Blue Theme (Member Section)
@@ -109,7 +107,14 @@ const accountInputStyle = {
   },
 };
 
-const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title }) => {
+const AccountOpeningForm: React.FC<Props> = ({ 
+  defaultAccountType = 'SB', 
+  title,
+  prefillMemberId,
+  readOnlyMemberId = false,
+  isUser = false
+}) => {
+  const navigate = useNavigate();
   const [memberId, setMemberId] = useState('');
   const [memberInfo, setMemberInfo] = useState<any>(null);
   const [accountGroupId, setAccountGroupId] = useState<string>('');
@@ -119,58 +124,116 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
   const [shouldFetchAgent, setShouldFetchAgent] = useState<boolean>(false);
   const [agentError, setAgentError] = useState<boolean>(false);
 
+  // Auto-fetch member info if prefilled
+  useEffect(() => {
+    if (prefillMemberId && !memberInfo) {
+      setMemberId(prefillMemberId);
+    }
+  }, [prefillMemberId, memberInfo]);
+
+  useEffect(() => {
+    if (prefillMemberId && memberId === prefillMemberId && !memberInfo) {
+      handleGetInfo(true); // Fetch silently on initial load
+    }
+  }, [memberId, prefillMemberId, memberInfo]);
+
   const [form, setForm] = useState<any>({
-    accountType: defaultAccountType,
+    accountType: defaultAccountType?.toUpperCase() || 'SB',
     accountOperation: 'Single',
     openingDate: new Date().toISOString().split('T')[0],
+    amount: '',
     interestSlab: '',
     interestRate: '',
     duration: '',
-    amount: '',
     maturityDate: '',
     maturityValue: '',
     introducer: '',
     introducerName: '',
     agent: '',
+    agentName: '',
     jointMember: '',
   });
 
-  // Fetch account groups
-  const { data: accountGroupsData } = useGetAccountGroups();
+  // Fetch account groups (Admin or Member)
+  const adminAccountGroups = AdminQueries.useGetAccountGroups(undefined, !isUser);
+  const memberAccountGroups = MemberQueries.useGetMemberAccountGroups(isUser); 
+  const accountGroupsData = isUser ? memberAccountGroups.data : adminAccountGroups.data;
 
-  // Fetch all agents for dropdown
-  const { data: agentsData, isLoading: loadingAgents } = useGetAllAgents();
+  // Fetch all agents for dropdown (Admin only)
+  const { data: agentsData } = AdminQueries.useGetAllAgents(!isUser); // We'll ignore this for users
 
   // Fetch member info when requested
-  const { isLoading: loadingMember, refetch: fetchMember } = useGetMemberById(
+  // Admin version
+  const { isLoading: loadingMemberAdmin, refetch: fetchMemberAdmin } = AdminQueries.useGetMemberById(
     memberId,
-    false // Don't auto-fetch
+    false
   );
+  // Member version
+  const { isLoading: loadingMemberUser, refetch: fetchMemberUser } = MemberQueries.useGetMemberById(
+    memberId,
+    false
+  );
+
+  const loadingMember = isUser ? loadingMemberUser : loadingMemberAdmin;
+  const fetchMember = isUser ? fetchMemberUser : fetchMemberAdmin;
 
   // Fetch interests based on account group ID
-  const { data: interestsData, isLoading: loadingInterests } = useGetInterestsByAccountGroup(
+  const adminInterests = AdminQueries.useGetInterestsByAccountGroup(
     accountGroupId,
-    !!accountGroupId
+    !isUser && !!accountGroupId
   );
-  console.log("intrestttt", interestsData);
+  const memberInterests = MemberQueries.useGetMemberInterestsByAccountGroup(
+    accountGroupId,
+    isUser && !!accountGroupId
+  );
+  const interestsData = isUser ? memberInterests.data : adminInterests.data;
+  const loadingInterests = isUser ? memberInterests.isLoading : adminInterests.isLoading;
 
-  // Fetch agent data when introducer code is entered and onBlur triggered
-  const { data: agentData, isLoading: isLoadingAgent, isError: isAgentError } = useGetAgentById(
+  // Fetch agent data when introducer code is entered and onBlur triggered (Admin only)
+  const { data: agentData, isLoading: isLoadingAgent, isError: isAgentError } = AdminQueries.useGetAgentById(
     introducerCode,
-    shouldFetchAgent && !!introducerCode && introducerCode.length > 0
+    !isUser && shouldFetchAgent && !!introducerCode && introducerCode.length > 0
   );
 
   // Create account mutation
-  const createAccountMutation = useCreateAccount();
+  const adminCreateAccount = AdminQueries.useCreateAccount();
+  const memberCreateAccount = MemberQueries.useCreateMemberAccount();
+  const createAccountMutation = isUser ? memberCreateAccount : adminCreateAccount;
+
+  console.log('AccountOpeningForm Debug:', { isUser, accountGroupId, defaultAccountType });
+  console.log('Account Groups Data:', accountGroupsData);
+  console.log('Interests Data:', interestsData);
 
   // Map account type name to account_group_id
   useEffect(() => {
     if (accountGroupsData?.data) {
-      const matchingGroup = accountGroupsData.data.find(
-        (group: any) => group.account_group_name === defaultAccountType
-      );
+      const search = defaultAccountType?.toUpperCase() || '';
+      const matchingGroup = accountGroupsData.data.find((group: any) => {
+        const name = group.account_group_name?.toUpperCase() || '';
+        const id = group.account_group_id?.toUpperCase() || '';
+        
+        // 1. Try exact match first (Highest Priority)
+        if (name === search || id === search) return true;
+
+        // 2. Try specific keyword matches for certain types
+        if (search === 'SB') {
+            return name === 'SAVING' || name === 'SAVINGS' || name === 'SAVINGS ACCOUNT' || name === 'SAVINGS BANK';
+        }
+        
+        return name.startsWith(search) ||
+               (search === 'RD' && name.includes('RECURRING')) ||
+               (search === 'FD' && name.includes('FIXED')) ||
+               (search === 'CA' && name.includes('CURRENT')) ||
+               (search === 'CUR' && name.includes('CURRENT')) ||
+               (search === 'MIS' && name.includes('MONTHLY')) ||
+               (search === 'PIGMY' && (name.includes('DAILY') || name === 'PIGMI'));
+      });
+      
       if (matchingGroup) {
-        setAccountGroupId(matchingGroup.account_group_id);
+        console.log('Found matching group:', matchingGroup);
+        setAccountGroupId(matchingGroup.account_group_id || matchingGroup._id);
+      } else {
+        console.log('No matching group found for:', defaultAccountType);
       }
     }
   }, [accountGroupsData, defaultAccountType]);
@@ -180,7 +243,8 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
     if (agentData?.data?.name) {
       setForm((prev: any) => ({
         ...prev,
-        introducerName: agentData.data.name || ''
+        introducerName: agentData.data.name || '',
+        agentName: agentData.data.name || ''
       }));
       setAgentError(false);
       // Reset fetch trigger after successful fetch
@@ -197,32 +261,39 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
   }, [agentData, isAgentError, shouldFetchAgent]);
 
   // Handle member info fetch
-  const handleGetInfo = async () => {
+  const handleGetInfo = async (silent = false) => {
     if (!memberId) {
-      toast.error('Please enter a member ID');
+      if (!silent) toast.error('Please enter a member ID');
       return;
     }
 
+    if (!memberId) return;
     try {
       const result = await fetchMember();
-      if (result.data?.success && result.data.data) {
-        const member = result.data.data;
-        setMemberInfo(member);
+      
+      // Check if data exists in the result
+      const data = result.data?.data || result.data || (result as any).data;
+      const success = result.data?.success || (result as any).success;
+
+      if (success && data) {
+        setMemberInfo(data);
 
         // Auto-populate fields from member data
         setForm((prev: any) => ({
           ...prev,
-          introducer: member.introducer || '',
-          introducerName: member.introducer_name || '',
+          introducer: data.introducer || data.Sponsor_code || '',
+          introducerName: data.introducer_name || data.Sponsor_name || '',
+          agent: data.agent_id || '',
+          agentName: data.agent_name || ''
         }));
 
-        toast.success('Member information loaded successfully');
+        if (!silent) toast.success('Member information loaded successfully');
       } else {
-        toast.error('Member not found');
+        if (!silent) toast.error('Member not found');
         setMemberInfo(null);
       }
     } catch (error) {
-      toast.error('Failed to fetch member information');
+      if (!silent) toast.error('Failed to fetch member information');
       setMemberInfo(null);
     }
   };
@@ -274,7 +345,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
     setForm((prev: any) => ({ ...prev, interestSlab: interestId }));
 
     if (interestsData?.data) {
-      const interest = interestsData.data.find((i: any) => i.interest_id === interestId);
+      const interest = interestsData.data.find((i: any) => (i.interest_id || i._id) === interestId);
       if (interest) {
 
         // Auto-select rate based on member age (Senior Citizen if 60+ years)
@@ -365,9 +436,8 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
     }
   };
 
-  const showInterestFields = ['SB', 'RD', 'FD', 'PIGMY', 'MIS'].includes(form.accountType);
+  const showInterestFields = ['SB', 'RD', 'FD', 'PIGMY', 'MIS', 'CA'].includes(form.accountType);
   const interests = interestsData?.data || [];
-  const agents = agentsData?.data || [];
 
   return (
     <Box sx={{ mt: 2, px: { xs: 1.5, sm: 2, md: 3 }, pb: 4 }}>
@@ -411,6 +481,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                       value={memberId}
                       onChange={(e) => setMemberId(e.target.value)}
                       label="Member ID"
+                      disabled={readOnlyMemberId}
                       sx={memberInputStyle}
                     />
                   </Grid>
@@ -419,7 +490,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                       variant="contained"
                       size="medium"
                       fullWidth
-                      onClick={handleGetInfo}
+                      onClick={() => handleGetInfo()}
                       disabled={loadingMember || !memberId}
                       sx={{
                         background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
@@ -448,7 +519,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                           label="Member Name"
                           fullWidth
                           size="small"
-                          value={memberInfo.name || ''}
+                          value={memberInfo.name || memberInfo.Name || ''}
                           InputProps={{ readOnly: true }}
                           sx={readOnlyInputStyle}
                         />
@@ -478,7 +549,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                           label="Email ID"
                           fullWidth
                           size="small"
-                          value={memberInfo.emailid || ''}
+                          value={memberInfo.emailid || memberInfo.email || ''}
                           InputProps={{ readOnly: true }}
                           sx={readOnlyInputStyle}
                         />
@@ -488,7 +559,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                           label="Contact No"
                           fullWidth
                           size="small"
-                          value={memberInfo.contactno || ''}
+                          value={memberInfo.contactno || memberInfo.mobileno || ''}
                           InputProps={{ readOnly: true }}
                           sx={readOnlyInputStyle}
                         />
@@ -510,7 +581,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                           label="Pan No"
                           fullWidth
                           size="small"
-                          value={memberInfo.pan_no || ''}
+                          value={memberInfo.pan_no || memberInfo.Pan_no || ''}
                           InputProps={{ readOnly: true }}
                           sx={readOnlyInputStyle}
                         />
@@ -550,7 +621,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                           label="Nominee"
                           fullWidth
                           size="small"
-                          value={memberInfo.nominee || ''}
+                          value={memberInfo.nominee || memberInfo.Nominee_name || ''}
                           InputProps={{ readOnly: true }}
                           sx={readOnlyInputStyle}
                         />
@@ -560,7 +631,7 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                           label="Relation"
                           fullWidth
                           size="small"
-                          value={memberInfo.relation || ''}
+                          value={memberInfo.relation || memberInfo.Nominee_Relation || ''}
                           InputProps={{ readOnly: true }}
                           sx={readOnlyInputStyle}
                         />
@@ -592,9 +663,13 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                       <Select
                         labelId="account-type-label"
                         label="Account Type"
-                        value={form.accountType}
-                        readOnly // Account type is non-editable but looks normal
-                        inputProps={{ readOnly: true }}
+                        value={form.accountType || defaultAccountType?.toUpperCase() || ''}
+                        onChange={(e) => {
+                          if (!isUser) handleChange('accountType', e.target.value);
+                          else navigate(`/user/account-opening/${e.target.value.toLowerCase()}`);
+                        }}
+                        readOnly={isUser}
+                        inputProps={{ readOnly: isUser }}
                       >
                         <MenuItem value="SB">SB</MenuItem>
                         <MenuItem value="CA">CA</MenuItem>
@@ -665,11 +740,11 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                             disabled={loadingInterests || interests.length === 0}
                           >
                             <MenuItem value="">Select Interest Slab</MenuItem>
-                            {interests.map((interest: any) => (
-                              <MenuItem key={interest.interest_id} value={interest.interest_id}>
-                                {interest.interest_name || `${interest.duration} Months`} - Gen: {interest.interest_rate_general || interest.interest_rate}% | Sr: {interest.interest_rate_senior || '-'}%
-                              </MenuItem>
-                            ))}
+                             {interests.map((interest: any) => (
+                               <MenuItem key={interest.interest_id || interest._id} value={interest.interest_id || interest._id}>
+                                 {interest.interest_name || `${interest.duration} Months`} - Gen: {interest.interest_rate_general ?? interest.interest_rate ?? 0}% | Sr: {interest.interest_rate_senior ?? '-'}%
+                               </MenuItem>
+                             ))}
                           </Select>
                         </FormControl>
                       </Grid>
@@ -740,58 +815,80 @@ const AccountOpeningForm: React.FC<Props> = ({ defaultAccountType = 'SB', title 
                     </>
                   )}
 
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Introducer"
-                      fullWidth
-                      size="small"
-                      value={form.introducer}
-                      onChange={(e) => handleChange('introducer', e.target.value)}
-                      onBlur={handleIntroducerBlur}
-                      error={agentError}
-                      helperText={agentError ? 'Agent not found' : ''}
-                      InputProps={{
-                        endAdornment: isLoadingAgent ? (
-                          <InputAdornment position="end">
-                            <CircularProgress size={20} />
-                          </InputAdornment>
-                        ) : null,
-                      }}
-                      sx={accountInputStyle}
-                    />
+                   {/* Introducer & Agent Section - Now visible but Read-Only for Members */}
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       label="Introducer Code"
+                       fullWidth
+                       size="small"
+                       value={form.introducer}
+                       onChange={(e) => !isUser && handleChange('introducer', e.target.value)}
+                       onBlur={!isUser ? handleIntroducerBlur : undefined}
+                       error={agentError}
+                       helperText={agentError ? 'Agent not found' : ''}
+                       InputProps={{
+                         readOnly: isUser,
+                         endAdornment: isLoadingAgent ? (
+                           <InputAdornment position="end">
+                             <CircularProgress size={20} />
+                           </InputAdornment>
+                         ) : null,
+                       }}
+                       sx={isUser ? readOnlyInputStyle : accountInputStyle}
+                     />
+                   </Grid>
 
-                  </Grid>
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       label="Introducer Name"
+                       fullWidth
+                       size="small"
+                       value={form.introducerName}
+                       InputProps={{ readOnly: true }}
+                       sx={readOnlyInputStyle}
+                     />
+                   </Grid>
 
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Introducer Name"
-                      fullWidth
-                      size="small"
-                      value={form.introducerName}
-                      InputProps={{ readOnly: true }}
-                      sx={readOnlyInputStyle}
-                    />
-                  </Grid>
+                   <Grid item xs={12} md={6}>
+                     {isUser ? (
+                       <TextField
+                         label="Agent Name"
+                         fullWidth
+                         size="small"
+                         value={form.agentName || form.agent || ''}
+                         InputProps={{ readOnly: true }}
+                         sx={readOnlyInputStyle}
+                       />
+                     ) : (
+                       <FormControl fullWidth size="small" sx={accountInputStyle}>
+                         <InputLabel>Select Agent</InputLabel>
+                         <Select
+                           label="Select Agent"
+                           value={form.agent}
+                           onChange={(e) => setForm({ ...form, agent: e.target.value })}
+                         >
+                           {agentsData?.data?.map((agent: any) => (
+                             <MenuItem key={agent._id} value={agent.agent_id}>
+                               {agent.name} ({agent.agent_id})
+                             </MenuItem>
+                           ))}
+                         </Select>
+                       </FormControl>
+                     )}
+                   </Grid>
 
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth size="small" sx={accountInputStyle}>
-                      <InputLabel id="agent-label">Agent</InputLabel>
-                      <Select
-                        labelId="agent-label"
-                        label="Agent"
-                        value={form.agent}
-                        onChange={(e) => handleChange('agent', e.target.value)}
-                        disabled={loadingAgents}
-                      >
-                        <MenuItem value="">Select Agent (Optional)</MenuItem>
-                        {agents.map((agent: any) => (
-                          <MenuItem key={agent.agent_id} value={agent.agent_id}>
-                            {agent.name} ({agent.agent_id})
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                   {!isUser && (
+                     <Grid item xs={12} md={6}>
+                       <TextField
+                         label="Agent Name (Display)"
+                         fullWidth
+                         size="small"
+                         value={form.agentName || ''}
+                         InputProps={{ readOnly: true }}
+                         sx={readOnlyInputStyle}
+                       />
+                     </Grid>
+                   )}
 
                   <Grid item xs={12} sx={{ mt: 2 }}>
                     <Divider sx={{ mb: 3 }} />

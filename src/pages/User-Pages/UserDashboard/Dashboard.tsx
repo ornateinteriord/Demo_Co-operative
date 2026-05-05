@@ -23,9 +23,9 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
 import HubIcon from '@mui/icons-material/Hub';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SavingsIcon from '@mui/icons-material/Savings';
-import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
@@ -39,6 +39,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import SpeedIcon from '@mui/icons-material/Speed';
 import LockIcon from '@mui/icons-material/Lock';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 
 import TokenService from '../../../api/token/tokenService';
 import {
@@ -111,9 +112,11 @@ const UserDashboard = () => {
   };
 
   const servicesGrid = [
-    { label: "SB Account", icon: <AccountBalanceWalletIcon />, color: "#3b82f6" },
-    { label: "RD Account", icon: <SavingsIcon />, color: "#10b981" },
-    { label: "OD Account", icon: <PriceChangeIcon />, color: "#f59e0b" },
+    { label: "SB Account", icon: <AccountBalanceWalletIcon />, color: "#3b82f6", type: "sb" },
+    { label: "RD Account", icon: <AutorenewIcon />, color: "#10b981", type: "rd" },
+    { label: "FD Account", icon: <NoteAddIcon />, color: "#f59e0b", type: "fd" },
+    { label: "CA Account", icon: <AccountBalanceIcon />, color: "#6366f1", type: "ca" },
+    { label: "Pigmy Account", icon: <SavingsIcon />, color: "#10b981", type: "pigmy" },
     { label: "BMS CREDIT", icon: <CreditCardIcon />, color: "#6366f1" },
     { label: "GOLD LOAN", icon: <MonetizationOnIcon />, color: "#10b981" },
     { label: "Group LOAN", icon: <GroupsIcon />, color: "#3b82f6" },
@@ -207,23 +210,22 @@ const UserDashboard = () => {
               onClick={() => navigate('/user/wallet')}
               sx={{
                 display: 'inline-flex',
+                width: 'fit-content',
                 alignItems: 'center',
-                gap: 0.8,
-                bgcolor: 'rgba(255,255,255,0.12)',
-                px: { xs: 1.5, md: 2 },
-                py: 0.8,
-                borderRadius: '12px',
+                gap: 0.6,
+                bgcolor: 'rgba(255,255,255,0.1)',
+                px: 1.5,
+                py: 0.5,
+                borderRadius: '10px',
                 cursor: 'pointer',
                 border: '1px solid rgba(255,255,255,0.15)',
                 backdropFilter: 'blur(10px)',
-                alignSelf: 'flex-start',
                 transition: 'all 0.2s',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.22)', transform: 'translateY(-2px)' },
-                '&:active': { transform: 'scale(0.95)' }
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)', transform: 'translateY(-1px)' },
               }}
             >
-              <AccountBalanceWalletIcon sx={{ fontSize: 18, color: '#FFC000' }} />
-              <Typography sx={{ fontWeight: 900, fontSize: { xs: '0.95rem', md: '1.1rem' }, whiteSpace: 'nowrap' }}>
+              <AccountBalanceWalletIcon sx={{ fontSize: 16, color: '#FFC000' }} />
+              <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                 ₹{Number(walletOverview?.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </Typography>
             </Box>
@@ -291,6 +293,12 @@ const UserDashboard = () => {
       </Box>
     </Box>
   );
+
+  const handleAccountClick = (item: any) => {
+    if (['SB Account', 'RD Account', 'FD Account', 'CA Account', 'Pigmy Account'].includes(item.label)) {
+      navigate(`/user/account-opening/${item.type}`);
+    }
+  };
 
   return (
     <Box sx={{
@@ -376,7 +384,11 @@ const UserDashboard = () => {
               gap: { xs: 2, md: 4 }
             }}>
               {servicesGrid.map((item, i) => (
-                <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
+                <Box 
+                  key={i} 
+                  onClick={() => handleAccountClick(item)}
+                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}
+                >
                   <Paper elevation={0} sx={{
                     width: { xs: 54, md: 74 },
                     height: { xs: 54, md: 74 },

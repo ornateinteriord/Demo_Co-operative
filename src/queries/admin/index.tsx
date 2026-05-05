@@ -157,7 +157,7 @@ export const useUpdateAgent = () => {
 };
 
 // GET ALL AGENTS (for dropdowns - no pagination)
-export const useGetAllAgents = () => {
+export const useGetAllAgents = (enabled: boolean = true) => {
     return useQuery({
         queryKey: ["allAgents"],
         queryFn: async () => {
@@ -166,6 +166,7 @@ export const useGetAllAgents = () => {
             return await useApi<AgentsResponse>("GET", "/admin/get-agents", undefined, params);
         },
         staleTime: 1000 * 60 * 10, // 10 minutes cache
+        enabled,
     });
 };
 
@@ -248,7 +249,7 @@ export const useGetAccountBooks = () => {
 };
 
 // GET ALL ACCOUNT GROUPS
-export const useGetAccountGroups = (account_book_id?: string) => {
+export const useGetAccountGroups = (account_book_id?: string, enabled: boolean = true) => {
     return useQuery({
         queryKey: ["accountGroups", account_book_id],
         queryFn: async () => {
@@ -258,6 +259,7 @@ export const useGetAccountGroups = (account_book_id?: string) => {
             return await useApi<AccountGroupsResponse>("GET", "/admin/get-account-groups", undefined, params);
         },
         staleTime: 1000 * 60 * 10, // 10 minutes
+        enabled,
     });
 };
 

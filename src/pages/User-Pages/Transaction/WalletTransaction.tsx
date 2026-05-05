@@ -9,23 +9,31 @@ import {
   CircularProgress,
   Box,
   Typography,
+  Button,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import DownloadIcon from "@mui/icons-material/Download";
+import { exportToExcel } from "../../../utils/excelExport";
 import {
   DASHBOARD_CUTSOM_STYLE,
   getTransactionColumns,
 } from "../../../utils/DataTableColumnsProvider";
+import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useGetTransactionDetails } from "../../../api/Memeber";
 
 const WalletTransaction = () => {
+  const [searchParams] = useSearchParams();
+  const type = searchParams.get("type") || "all";
+  const status = searchParams.get("status") || "all";
+
   const {
     data: transactionsResponse,
     isLoading,
     isError,
     error,
-  } = useGetTransactionDetails();
+  } = useGetTransactionDetails(status, type);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredData, setFilteredData] = useState<any[]>([]);
@@ -89,7 +97,7 @@ const WalletTransaction = () => {
               "& .MuiSvgIcon-root": { color: "#fff" },
             }}
           >
-            Wallet Transactions
+            {type !== 'all' ? `${type} Account History` : 'Wallet Transactions'}
           </AccordionSummary>
           <AccordionDetails>
             <DataTable
@@ -111,9 +119,41 @@ const WalletTransaction = () => {
                   width: "100%",
                   p: 1,
                 }}>
-                  <Typography variant="body2" color="textSecondary">
-                    Showing {filteredData.length} wallet transactions
-                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Typography variant="body2" color="textSecondary">
+                      Showing {filteredData.length} wallet transactions
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => exportToExcel({
+                        fileName: `Statement_${type}_${new Date().toLocaleDateString('en-GB')}`,
+                        title: `${type !== 'all' ? type : 'Wallet'} Statement`,
+                        columns: [
+                          { header: 'Date', key: 'transaction_date', width: 20 },
+                          { header: 'ID', key: 'transaction_id', width: 20 },
+                          { header: 'Type', key: 'transaction_type', width: 15 },
+                          { header: 'Description', key: 'description', width: 40 },
+                          { header: 'Credit', key: 'credit', width: 15 },
+                          { header: 'Debit', key: 'debit', width: 15 },
+                          { header: 'Balance', key: 'balance', width: 15 },
+                          { header: 'Status', key: 'status', width: 12 },
+                        ],
+                        data: filteredData.map(tx => ({
+                          ...tx,
+                          transaction_date: tx.transaction_date ? new Date(tx.transaction_date).toLocaleDateString('en-GB') : (tx.createdAt ? new Date(tx.createdAt).toLocaleDateString('en-GB') : ''),
+                          credit: tx.credit || tx.ew_credit || 0,
+                          debit: tx.debit || tx.ew_debit || 0,
+                          balance: tx.balance || tx.net_amount || tx.previous_balance || 0
+                        })),
+                        statusField: 'status'
+                      })}
+                      sx={{ borderRadius: '8px' }}
+                    >
+                      Export
+                    </Button>
+                  </Box>
                   <TextField
                     placeholder="Search wallet transactions..."
                     variant="outlined"

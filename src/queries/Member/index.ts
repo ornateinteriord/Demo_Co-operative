@@ -59,12 +59,13 @@ export const useCreateMemberAccount = () => {
     });
 };
 // GET MEMBER ACCOUNT GROUPS
-export const useGetMemberAccountGroups = () => {
+export const useGetMemberAccountGroups = (enabled: boolean = true) => {
     return useQuery({
         queryKey: ["memberAccountGroups"],
         queryFn: async () => {
             return await useApi<any>("GET", "/member/get-account-groups");
         },
+        enabled,
     });
 };
 
