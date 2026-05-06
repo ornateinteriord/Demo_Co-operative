@@ -254,7 +254,7 @@ export const getTransactionColumns = () => [
   {
     name: "Credit",
     selector: (row: any) => {
-      const amt = row.ew_credit || row.credit;
+      const amt = parseFloat(row.ew_credit || 0) > 0 ? row.ew_credit : row.credit;
       return amt && parseFloat(amt) > 0 ? `₹ ${parseFloat(amt).toLocaleString('en-IN')}` : "-";
     },
     sortable: true,
@@ -263,7 +263,7 @@ export const getTransactionColumns = () => [
   {
     name: "Debit",
     selector: (row: any) => {
-      const amt = row.ew_debit || row.debit;
+      const amt = parseFloat(row.ew_debit || 0) > 0 ? row.ew_debit : row.debit;
       return amt && parseFloat(amt) > 0 ? `₹ ${parseFloat(amt).toLocaleString('en-IN')}` : "-";
     },
     sortable: true,

@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import moment from 'moment';
 import {
   Box,
   Card,
@@ -19,6 +20,8 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import StarsIcon from '@mui/icons-material/Stars';
 import DownloadIcon from '@mui/icons-material/Download';
 import UserContext from '../../../context/user/userContext';
 import { useRequestAddOnMutation, useGetMemberAddOns } from '../../../api/Packages';
@@ -199,9 +202,12 @@ export const UserAddOnPackages = () => {
             return allPackages.map((pkg: any, index: number) => {
               const pkgAmount = pkg.amount || pkg.requested_amount || 0;
               const pkgId = pkg.package_id || pkg.request_id || 'N/A';
+              const totalDays = pkg.isFD 
+                ? (moment(pkg.date_of_maturity).diff(moment(pkg.roi_start_date), 'days') || 1)
+                : 300;
+              const pkgProgress = pkg.roi_payout_count ? Math.min((pkg.roi_payout_count / totalDays) * 100, 100) : 0;
               const pkgTarget = pkg.roi_payout_target || (pkgAmount * 2);
               const pkgDailyROI = pkgTarget > 0 ? parseFloat((pkgTarget / 300).toFixed(2)) : 0;
-              const pkgProgress = pkg.roi_payout_count ? Math.min((pkg.roi_payout_count / 300) * 100, 100) : 0;
 
               return (
                 <Grid item xs={12} sm={6} md={4} key={pkgId}>
@@ -217,10 +223,13 @@ export const UserAddOnPackages = () => {
                     <CardContent sx={{ p: 3 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                         <Box>
-                          <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 800, color: pkg.isPrimary ? '#0a2558' : 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            {pkg.isPrimary ? 'Primary Package' : `My Deposit #${index}`}
-                          </Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 900, fontSize: '1.4rem', color: '#0a2558', lineHeight: 1.2, mt: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                            {pkg.isPrimary ? <StarsIcon sx={{ fontSize: 14, color: '#0a2558' }} /> : (pkg.isFD ? <AccountBalanceIcon sx={{ fontSize: 14, color: '#ed6c02' }} /> : <PaymentsIcon sx={{ fontSize: 14, color: 'text.secondary' }} />)}
+                            <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 800, color: pkg.isPrimary ? '#0a2558' : (pkg.isFD ? '#ed6c02' : 'text.secondary'), textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                              {pkg.isPrimary ? 'Primary Package' : (pkg.isFD ? 'Fixed Deposit' : `My Deposit #${index}`)}
+                            </Typography>
+                          </Box>
+                          <Typography variant="h5" sx={{ fontWeight: 900, fontSize: '1.4rem', color: '#0a2558', lineHeight: 1.2 }}>
                             ₹{pkgAmount.toLocaleString('en-IN')}
                           </Typography>
                         </Box>
@@ -234,14 +243,18 @@ export const UserAddOnPackages = () => {
 
                       <Divider sx={{ mb: 2 }} />
                       <Box sx={{ mb: 2 }}>
-                        <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', display: 'block', fontWeight: 600 }}>Daily ROI</Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', display: 'block', fontWeight: 600 }}>
+                          {pkg.isFD ? 'Interest Rate' : 'Daily ROI'}
+                        </Typography>
                         <Typography variant="h6" sx={{ fontWeight: 800, color: '#1565c0', fontSize: '1.1rem' }}>
-                          ₹{pkgDailyROI.toLocaleString('en-IN')}
+                          {pkg.isFD ? `${pkg.interest_rate || 0}% p.a.` : `₹${pkgDailyROI.toLocaleString('en-IN')}`}
                         </Typography>
                       </Box>
 
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 600 }}>Day {pkg.roi_payout_count} of 300</Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 600 }}>
+                          {pkg.isFD ? `Matures ${moment(pkg.date_of_maturity).format('DD MMM YYYY')}` : `Day ${pkg.roi_payout_count} of 300`}
+                        </Typography>
                         <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 700 }}>{pkgProgress.toFixed(0)}%</Typography>
                       </Box>
                       <LinearProgress
