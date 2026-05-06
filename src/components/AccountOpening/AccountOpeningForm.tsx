@@ -107,8 +107,8 @@ const accountInputStyle = {
   },
 };
 
-const AccountOpeningForm: React.FC<Props> = ({ 
-  defaultAccountType = 'SB', 
+const AccountOpeningForm: React.FC<Props> = ({
+  defaultAccountType = 'SB',
   title,
   prefillMemberId,
   readOnlyMemberId = false,
@@ -156,7 +156,7 @@ const AccountOpeningForm: React.FC<Props> = ({
 
   // Fetch account groups (Admin or Member)
   const adminAccountGroups = AdminQueries.useGetAccountGroups(undefined, !isUser);
-  const memberAccountGroups = MemberQueries.useGetMemberAccountGroups(isUser); 
+  const memberAccountGroups = MemberQueries.useGetMemberAccountGroups(isUser);
   const accountGroupsData = isUser ? memberAccountGroups.data : adminAccountGroups.data;
 
   // Fetch all agents for dropdown (Admin only)
@@ -211,24 +211,24 @@ const AccountOpeningForm: React.FC<Props> = ({
       const matchingGroup = accountGroupsData.data.find((group: any) => {
         const name = group.account_group_name?.toUpperCase() || '';
         const id = group.account_group_id?.toUpperCase() || '';
-        
+
         // 1. Try exact match first (Highest Priority)
         if (name === search || id === search) return true;
 
         // 2. Try specific keyword matches for certain types
         if (search === 'SB') {
-            return name === 'SAVING' || name === 'SAVINGS' || name === 'SAVINGS ACCOUNT' || name === 'SAVINGS BANK';
+          return name === 'SAVING' || name === 'SAVINGS' || name === 'SAVINGS ACCOUNT' || name === 'SAVINGS BANK';
         }
-        
+
         return name.startsWith(search) ||
-               (search === 'RD' && name.includes('RECURRING')) ||
-               (search === 'FD' && name.includes('FIXED')) ||
-               (search === 'CA' && name.includes('CURRENT')) ||
-               (search === 'CUR' && name.includes('CURRENT')) ||
-               (search === 'MIS' && name.includes('MONTHLY')) ||
-               (search === 'PIGMY' && (name.includes('DAILY') || name === 'PIGMI'));
+          (search === 'RD' && name.includes('RECURRING')) ||
+          (search === 'FD' && name.includes('FIXED')) ||
+          (search === 'CA' && name.includes('CURRENT')) ||
+          (search === 'CUR' && name.includes('CURRENT')) ||
+          (search === 'MIS' && name.includes('MONTHLY')) ||
+          (search === 'PIGMY' && (name.includes('DAILY') || name === 'PIGMI'));
       });
-      
+
       if (matchingGroup) {
         console.log('Found matching group:', matchingGroup);
         setAccountGroupId(matchingGroup.account_group_id || matchingGroup._id);
@@ -270,7 +270,7 @@ const AccountOpeningForm: React.FC<Props> = ({
     if (!memberId) return;
     try {
       const result = await fetchMember();
-      
+
       // Check if data exists in the result
       const data = result.data?.data || result.data || (result as any).data;
       const success = result.data?.success || (result as any).success;
@@ -436,7 +436,7 @@ const AccountOpeningForm: React.FC<Props> = ({
     }
   };
 
-  const showInterestFields = ['SB', 'RD', 'FD', 'PIGMY', 'MIS', 'CA'].includes(form.accountType);
+  const showInterestFields = ['RD', 'FD', 'PIGMY', 'MIS'].includes(form.accountType);
   const interests = interestsData?.data || [];
 
   return (
@@ -740,11 +740,11 @@ const AccountOpeningForm: React.FC<Props> = ({
                             disabled={loadingInterests || interests.length === 0}
                           >
                             <MenuItem value="">Select Interest Slab</MenuItem>
-                             {interests.map((interest: any) => (
-                               <MenuItem key={interest.interest_id || interest._id} value={interest.interest_id || interest._id}>
-                                 {interest.interest_name || `${interest.duration} Months`} - Gen: {interest.interest_rate_general ?? interest.interest_rate ?? 0}% | Sr: {interest.interest_rate_senior ?? '-'}%
-                               </MenuItem>
-                             ))}
+                            {interests.map((interest: any) => (
+                              <MenuItem key={interest.interest_id || interest._id} value={interest.interest_id || interest._id}>
+                                {interest.interest_name || `${interest.duration} Months`} - Gen: {interest.interest_rate_general ?? interest.interest_rate ?? 0}% | Sr: {interest.interest_rate_senior ?? '-'}%
+                              </MenuItem>
+                            ))}
                           </Select>
                         </FormControl>
                       </Grid>
@@ -815,80 +815,80 @@ const AccountOpeningForm: React.FC<Props> = ({
                     </>
                   )}
 
-                   {/* Introducer & Agent Section - Now visible but Read-Only for Members */}
-                   <Grid item xs={12} md={6}>
-                     <TextField
-                       label="Introducer Code"
-                       fullWidth
-                       size="small"
-                       value={form.introducer}
-                       onChange={(e) => !isUser && handleChange('introducer', e.target.value)}
-                       onBlur={!isUser ? handleIntroducerBlur : undefined}
-                       error={agentError}
-                       helperText={agentError ? 'Agent not found' : ''}
-                       InputProps={{
-                         readOnly: isUser,
-                         endAdornment: isLoadingAgent ? (
-                           <InputAdornment position="end">
-                             <CircularProgress size={20} />
-                           </InputAdornment>
-                         ) : null,
-                       }}
-                       sx={isUser ? readOnlyInputStyle : accountInputStyle}
-                     />
-                   </Grid>
+                  {/* Introducer & Agent Section - Now visible but Read-Only for Members */}
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="Introducer Code"
+                      fullWidth
+                      size="small"
+                      value={form.introducer}
+                      onChange={(e) => !isUser && handleChange('introducer', e.target.value)}
+                      onBlur={!isUser ? handleIntroducerBlur : undefined}
+                      error={agentError}
+                      helperText={agentError ? 'Agent not found' : ''}
+                      InputProps={{
+                        readOnly: isUser,
+                        endAdornment: isLoadingAgent ? (
+                          <InputAdornment position="end">
+                            <CircularProgress size={20} />
+                          </InputAdornment>
+                        ) : null,
+                      }}
+                      sx={isUser ? readOnlyInputStyle : accountInputStyle}
+                    />
+                  </Grid>
 
-                   <Grid item xs={12} md={6}>
-                     <TextField
-                       label="Introducer Name"
-                       fullWidth
-                       size="small"
-                       value={form.introducerName}
-                       InputProps={{ readOnly: true }}
-                       sx={readOnlyInputStyle}
-                     />
-                   </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="Introducer Name"
+                      fullWidth
+                      size="small"
+                      value={form.introducerName}
+                      InputProps={{ readOnly: true }}
+                      sx={readOnlyInputStyle}
+                    />
+                  </Grid>
 
-                   <Grid item xs={12} md={6}>
-                     {isUser ? (
-                       <TextField
-                         label="Agent Name"
-                         fullWidth
-                         size="small"
-                         value={form.agentName || form.agent || ''}
-                         InputProps={{ readOnly: true }}
-                         sx={readOnlyInputStyle}
-                       />
-                     ) : (
-                       <FormControl fullWidth size="small" sx={accountInputStyle}>
-                         <InputLabel>Select Agent</InputLabel>
-                         <Select
-                           label="Select Agent"
-                           value={form.agent}
-                           onChange={(e) => setForm({ ...form, agent: e.target.value })}
-                         >
-                           {agentsData?.data?.map((agent: any) => (
-                             <MenuItem key={agent._id} value={agent.agent_id}>
-                               {agent.name} ({agent.agent_id})
-                             </MenuItem>
-                           ))}
-                         </Select>
-                       </FormControl>
-                     )}
-                   </Grid>
+                  <Grid item xs={12} md={6}>
+                    {isUser ? (
+                      <TextField
+                        label="Agent Name"
+                        fullWidth
+                        size="small"
+                        value={form.agentName || form.agent || ''}
+                        InputProps={{ readOnly: true }}
+                        sx={readOnlyInputStyle}
+                      />
+                    ) : (
+                      <FormControl fullWidth size="small" sx={accountInputStyle}>
+                        <InputLabel>Select Agent</InputLabel>
+                        <Select
+                          label="Select Agent"
+                          value={form.agent}
+                          onChange={(e) => setForm({ ...form, agent: e.target.value })}
+                        >
+                          {agentsData?.data?.map((agent: any) => (
+                            <MenuItem key={agent._id} value={agent.agent_id}>
+                              {agent.name} ({agent.agent_id})
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
+                  </Grid>
 
-                   {!isUser && (
-                     <Grid item xs={12} md={6}>
-                       <TextField
-                         label="Agent Name (Display)"
-                         fullWidth
-                         size="small"
-                         value={form.agentName || ''}
-                         InputProps={{ readOnly: true }}
-                         sx={readOnlyInputStyle}
-                       />
-                     </Grid>
-                   )}
+                  {!isUser && (
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Agent Name (Display)"
+                        fullWidth
+                        size="small"
+                        value={form.agentName || ''}
+                        InputProps={{ readOnly: true }}
+                        sx={readOnlyInputStyle}
+                      />
+                    </Grid>
+                  )}
 
                   <Grid item xs={12} sx={{ mt: 2 }}>
                     <Divider sx={{ mb: 3 }} />
