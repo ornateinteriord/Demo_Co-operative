@@ -151,6 +151,7 @@ const KYC: React.FC = () => {
     ifsc_code: '',
     bank_name: '',
     Pan_no: '',
+    Aadhar_no: '',
     address: '',
   });
 
@@ -173,6 +174,7 @@ const KYC: React.FC = () => {
         ifsc_code: user.ifsc_code || '',
         bank_name: user.bank_name || '',
         Pan_no: user.Pan_no || '',
+        Aadhar_no: user.aadharcard_no || '',
         address: user.address || '',
       });
 
@@ -267,8 +269,8 @@ const KYC: React.FC = () => {
     }
 
     // Validate bank details
-    if (!formData.account_number || !formData.ifsc_code || !formData.bank_name || !formData.Pan_no) {
-      toast.error('Please fill all bank account details');
+    if (!formData.account_number || !formData.ifsc_code || !formData.bank_name || !formData.Pan_no || !formData.Aadhar_no) {
+      toast.error('Please fill all identity and bank account details');
       return;
     }
 
@@ -277,6 +279,7 @@ const KYC: React.FC = () => {
       bankAccount: formData.account_number,
       ifsc: formData.ifsc_code,
       pan: formData.Pan_no,
+      aadhar_no: formData.Aadhar_no,
       address: formData.address,
       bankName: formData.bank_name,
       panImage: documents.panImage,
@@ -321,7 +324,7 @@ const KYC: React.FC = () => {
               },
             }}
           >
-            Update Bank Account Details
+            Update Identity and Bank Account Details
           </AccordionSummary>
           <AccordionDetails sx={{ padding: '2rem' }}>
             <form style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -429,32 +432,64 @@ const KYC: React.FC = () => {
                   },
                 }}
               />
-              <TextField
-                label="PAN Number"
-                name="Pan_no"
-                value={formData.Pan_no}
-                onChange={handleInputChange}
-                fullWidth
-                variant="outlined"
-                placeholder="Enter PAN number"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <BadgeIcon sx={{ color: '#0a2558' }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: '#0a2558',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#0a2558',
-                    },
-                  },
-                }}
-              />
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="PAN Number"
+                    name="Pan_no"
+                    value={formData.Pan_no}
+                    onChange={handleInputChange}
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Enter PAN number"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <BadgeIcon sx={{ color: '#0a2558' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: '#0a2558',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#0a2558',
+                        },
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Aadhar Number"
+                    name="Aadhar_no"
+                    value={formData.Aadhar_no}
+                    onChange={handleInputChange}
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Enter Aadhar number"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PersonIcon sx={{ color: '#0a2558' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: '#0a2558',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#0a2558',
+                        },
+                      },
+                    }}
+                  />
+                </Grid>
+              </Grid>
             </form>
           </AccordionDetails>
         </Accordion>

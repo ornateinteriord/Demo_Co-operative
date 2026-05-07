@@ -308,6 +308,7 @@ const RoutesProvider = ({
         )}
 
         <div
+          className="content-wrapper"
           style={{
             flex: 1,
             marginLeft: !hideSidebar && showSidebar && isOpen ? "250px" : "0",
@@ -316,7 +317,7 @@ const RoutesProvider = ({
             width: "100%",
             overflowX: "hidden",
             // Transparent on public pages so Login/Register bg fills the whole screen
-            backgroundColor: hideNavbar ? "transparent" : "#f4f7f9",
+            backgroundColor: (hideNavbar || document.body.className.includes("theme-")) ? "transparent" : "#f4f7f9",
             minHeight: "100vh",
             // No padding offset when navbar is hidden (public pages)
             paddingTop: hideNavbar ? "0" : (!hideSidebar ? (window.innerWidth < 900 ? "56px" : "64px") : "0"),

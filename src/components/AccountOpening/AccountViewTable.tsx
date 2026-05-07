@@ -43,7 +43,70 @@ interface Props {
     title: string;
 }
 
+const ACCOUNT_THEMES: Record<string, any> = {
+    SB: {
+        primary: '#1a237e',
+        secondary: '#0d47a1',
+        light: '#bfdbfe',
+        gradient: 'linear-gradient(135deg, #1a237e 0%, #3949ab 100%)',
+        shadow: '0 4px 14px 0 rgba(26, 35, 126, 0.25)',
+        chip: { backgroundColor: '#bfdbfe', color: '#1a237e' }
+    },
+    CA: {
+        primary: '#1b5e20',
+        secondary: '#2e7d32',
+        light: '#bbf7d0',
+        gradient: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)',
+        shadow: '0 4px 14px 0 rgba(27, 94, 32, 0.25)',
+        chip: { backgroundColor: '#bbf7d0', color: '#1b5e20' }
+    },
+    RD: {
+        primary: '#e65100',
+        secondary: '#ef6c00',
+        light: '#fed7aa',
+        gradient: 'linear-gradient(135deg, #e65100 0%, #fb8c00 100%)',
+        shadow: '0 4px 14px 0 rgba(230, 81, 0, 0.25)',
+        chip: { backgroundColor: '#fed7aa', color: '#e65100' }
+    },
+    FD: {
+        primary: '#4a148c',
+        secondary: '#6a1b9a',
+        light: '#e9d5ff',
+        gradient: 'linear-gradient(135deg, #4a148c 0%, #7b1fa2 100%)',
+        shadow: '0 4px 14px 0 rgba(74, 20, 140, 0.25)',
+        chip: { backgroundColor: '#e9d5ff', color: '#4a148c' }
+    },
+    PIGMY: {
+        primary: '#f57f17',
+        secondary: '#fbc02d',
+        light: '#fef08a',
+        gradient: 'linear-gradient(135deg, #f57f17 0%, #fbc02d 100%)',
+        shadow: '0 4px 14px 0 rgba(245, 127, 23, 0.25)',
+        chip: { backgroundColor: '#fef08a', color: '#f57f17' }
+    },
+    MIS: {
+        primary: '#006064',
+        secondary: '#00838f',
+        light: '#99f6e4',
+        gradient: 'linear-gradient(135deg, #006064 0%, #0097a7 100%)',
+        shadow: '0 4px 14px 0 rgba(0, 96, 100, 0.25)',
+        chip: { backgroundColor: '#99f6e4', color: '#006064' }
+    }
+};
+
 const AccountViewTable: React.FC<Props> = ({ accountType, title }) => {
+    const theme = ACCOUNT_THEMES[accountType] || ACCOUNT_THEMES.SB;
+
+    // Dynamically update body class for the entire page
+    useEffect(() => {
+        const type = (accountType || 'SB').toLowerCase();
+        const className = `theme-${type}`;
+        document.body.classList.add(className);
+        return () => {
+            document.body.classList.remove(className);
+        };
+    }, [accountType]);
+
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [searchQuery, setSearchQuery] = useState('');
@@ -166,7 +229,12 @@ const AccountViewTable: React.FC<Props> = ({ accountType, title }) => {
     };
 
     return (
-        <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, mt: 2 }}>
+        <Box sx={{ 
+            p: { xs: 1.5, sm: 2, md: 3 }, 
+            minHeight: '100vh',
+            background: `linear-gradient(180deg, ${theme.light} 0%, #f8fafc 500px, #f8fafc 100%)`,
+            transition: 'background 0.3s ease'
+        }}>
             {/* Page Header */}
             <Stack
                 direction={{ xs: 'column', sm: 'row' }}
@@ -179,7 +247,7 @@ const AccountViewTable: React.FC<Props> = ({ accountType, title }) => {
                     variant="h4"
                     sx={{
                         fontWeight: 700,
-                        color: '#1a237e',
+                        color: theme.primary,
                         fontSize: { xs: '1.4rem', sm: '1.75rem', md: '2.125rem' },
                     }}
                 >
@@ -187,11 +255,11 @@ const AccountViewTable: React.FC<Props> = ({ accountType, title }) => {
                 </Typography>
                 <Stack direction="row" spacing={1.5} alignItems="center">
                     <Chip
-                        icon={<AccountBalanceIcon />}
+                        icon={<AccountBalanceIcon sx={{ color: `${theme.primary} !important` }} />}
                         label={`Total: ${totalAccounts} accounts`}
                         sx={{
-                            backgroundColor: '#e0f2fe',
-                            color: '#0369a1',
+                            backgroundColor: theme.light,
+                            color: theme.primary,
                             fontWeight: 500,
                         }}
                     />
@@ -204,10 +272,10 @@ const AccountViewTable: React.FC<Props> = ({ accountType, title }) => {
                             textTransform: 'none',
                             fontWeight: 600,
                             borderRadius: 2,
-                            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                            boxShadow: '0 4px 14px 0 rgba(99, 102, 241, 0.25)',
+                            background: theme.gradient,
+                            boxShadow: theme.shadow,
                             '&:hover': {
-                                background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                                background: theme.secondary,
                             },
                             '&:disabled': {
                                 background: '#94a3b8',
@@ -224,11 +292,12 @@ const AccountViewTable: React.FC<Props> = ({ accountType, title }) => {
             <Paper
                 elevation={0}
                 sx={{
-                    border: '1px solid #e2e8f0',
+                    border: `1px solid ${theme.primary}15`,
                     borderRadius: 3,
                     p: { xs: 2, sm: 2.5 },
                     mb: 3,
-                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                    background: `linear-gradient(135deg, ${theme.light}66 0%, rgba(255, 255, 255, 0.8) 100%)`,
+                    backdropFilter: 'blur(10px)',
                 }}
             >
                 <Stack
@@ -286,10 +355,12 @@ const AccountViewTable: React.FC<Props> = ({ accountType, title }) => {
             <Paper
                 elevation={0}
                 sx={{
-                    border: '1px solid #e2e8f0',
+                    border: `1px solid ${theme.primary}15`,
                     borderRadius: 3,
                     overflow: 'hidden',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(10px)',
                 }}
             >
                 {isLoading ? (
@@ -404,11 +475,11 @@ const AccountViewTable: React.FC<Props> = ({ accountType, title }) => {
                                                         textTransform: 'none',
                                                         fontWeight: 600,
                                                         borderRadius: 2,
-                                                        borderColor: '#6366f1',
-                                                        color: '#6366f1',
+                                                        borderColor: theme.primary,
+                                                        color: theme.primary,
                                                         '&:hover': {
-                                                            borderColor: '#4f46e5',
-                                                            backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                                                            borderColor: theme.secondary,
+                                                            backgroundColor: `${theme.primary}0a`,
                                                         },
                                                     }}
                                                 >

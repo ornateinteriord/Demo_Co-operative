@@ -861,3 +861,44 @@ export const useSubmitKYC = () => {
     },
   });
 };
+
+// Transfer money between own accounts (Self Transfer)
+export const useTransferMoney = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (transferData: {
+      from: { member_id: string; account_id: string; account_no: string; account_type: string };
+      to: { member_id: string; account_id: string; account_no: string; account_type: string };
+      amount: number;
+    }) => {
+      console.log("🔄 Initiating money transfer...", transferData);
+      const response = await post("/transaction/transfer-money", transferData);
+      
+      if (!response) throw new Error("No response from server");
+      const data = response.data || response;
+
+      if (data.success === false) {
+        throw new Error(data.message || "Transfer failed");
+      }
+
+      return data;
+    },
+
+    onSuccess: (data: any) => {
+      console.log("✅ Money transfer successful:", data);
+      toast.success(data.message || "Transfer successful!");
+      
+      // Invalidate relevant queries to refresh balances
+      queryClient.invalidateQueries({ queryKey: ["memberDetails"] });
+      queryClient.invalidateQueries({ queryKey: ["walletOverview"] });
+      queryClient.invalidateQueries({ queryKey: ["transactionsWithConfig"] });
+    },
+
+    onError: (error: any) => {
+      console.error("❌ Money transfer failed:", error);
+      const message = error?.response?.data?.message || error?.message || "Transfer failed. Please check your balance and try again.";
+      toast.error(message);
+    },
+  });
+};

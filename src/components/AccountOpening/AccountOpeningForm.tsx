@@ -32,35 +32,6 @@ interface Props {
   isUser?: boolean;
 }
 
-// Modern Input Styles - Blue Theme (Member Section)
-const memberInputStyle = {
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: 'white',
-    borderRadius: 2,
-    fontWeight: 500,
-    '& fieldset': {
-      borderColor: 'rgba(26, 35, 126, 0.25)',
-      borderWidth: '1.5px',
-    },
-    '&:hover fieldset': {
-      borderColor: '#1a237e',
-      borderWidth: '1.5px',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: '#1a237e',
-      borderWidth: '2.5px',
-      boxShadow: '0 0 0 3px rgba(26, 35, 126, 0.1)',
-    },
-  },
-  '& .MuiInputLabel-root': {
-    fontWeight: 500,
-    '&.Mui-focused': {
-      color: '#1a237e',
-      fontWeight: 600,
-    },
-  },
-};
-
 // Read-only Input Style
 const readOnlyInputStyle = {
   '& .MuiOutlinedInput-root': {
@@ -78,33 +49,57 @@ const readOnlyInputStyle = {
   },
 };
 
-// Modern Input Styles - Green Theme (Account Section)
-const accountInputStyle = {
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: 'white',
-    borderRadius: 2,
-    fontWeight: 500,
-    '& fieldset': {
-      borderColor: 'rgba(22, 101, 52, 0.25)',
-      borderWidth: '1.5px',
-    },
-    '&:hover fieldset': {
-      borderColor: '#166534',
-      borderWidth: '1.5px',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: '#166534',
-      borderWidth: '2.5px',
-      boxShadow: '0 0 0 3px rgba(22, 101, 52, 0.1)',
-    },
+interface AccountTheme {
+  primary: string;
+  secondary: string;
+  light: string;
+  gradient: string;
+  shadow: string;
+}
+
+const ACCOUNT_THEMES: Record<string, AccountTheme> = {
+  SB: {
+    primary: '#1a237e', // Navy
+    secondary: '#0d47a1',
+    light: '#bfdbfe',
+    gradient: 'linear-gradient(135deg, #0f1dbbff 0%, #3949ab 100%)',
+    shadow: '0 4px 14px 0 rgba(26, 35, 126, 1)'
   },
-  '& .MuiInputLabel-root': {
-    fontWeight: 500,
-    '&.Mui-focused': {
-      color: '#166534',
-      fontWeight: 600,
-    },
+  CA: {
+    primary: '#1b5e20', // Dark Green
+    secondary: '#2e7d32',
+    light: '#bbf7d0',
+    gradient: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)',
+    shadow: '0 4px 14px 0 rgba(27, 94, 32, 0.25)'
   },
+  RD: {
+    primary: '#e65100', // Orange
+    secondary: '#ef6c00',
+    light: '#fed7aa',
+    gradient: 'linear-gradient(135deg, #e65100 0%, #fb8c00 100%)',
+    shadow: '0 4px 14px 0 rgba(230, 81, 0, 0.25)'
+  },
+  FD: {
+    primary: '#4a148c', // Purple
+    secondary: '#6a1b9a',
+    light: '#e9d5ff',
+    gradient: 'linear-gradient(135deg, #4a148c 0%, #7b1fa2 100%)',
+    shadow: '0 4px 14px 0 rgba(74, 20, 140, 0.25)'
+  },
+  PIGMY: {
+    primary: '#f57f17', // Gold/Amber
+    secondary: '#fbc02d',
+    light: '#fef08a',
+    gradient: 'linear-gradient(135deg, #f57f17 0%, #fbc02d 100%)',
+    shadow: '0 4px 14px 0 rgba(245, 127, 23, 0.25)'
+  },
+  MIS: {
+    primary: '#006064', // Cyan/Teal
+    secondary: '#00838f',
+    light: '#99f6e4',
+    gradient: 'linear-gradient(135deg, #006064 0%, #0097a7 100%)',
+    shadow: '0 4px 14px 0 rgba(0, 96, 100, 0.25)'
+  }
 };
 
 const AccountOpeningForm: React.FC<Props> = ({
@@ -115,6 +110,75 @@ const AccountOpeningForm: React.FC<Props> = ({
   isUser = false
 }) => {
   const navigate = useNavigate();
+  const theme = ACCOUNT_THEMES[defaultAccountType?.toUpperCase() || 'SB'] || ACCOUNT_THEMES.SB;
+
+  // Custom styles for inputs based on theme
+  const memberInputStyle = {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: 'white',
+      borderRadius: 2,
+      fontWeight: 500,
+      '& fieldset': {
+        borderColor: '#e2e8f0',
+        borderWidth: '1.5px',
+      },
+      '&:hover fieldset': {
+        borderColor: theme.primary,
+        borderWidth: '1.5px',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: theme.primary,
+        borderWidth: '2.5px',
+        boxShadow: `0 0 0 3px ${theme.primary}1a`,
+      },
+    },
+    '& .MuiInputLabel-root': {
+      fontWeight: 500,
+      '&.Mui-focused': {
+        color: theme.primary,
+        fontWeight: 600,
+      },
+    },
+  };
+
+  const accountInputStyle = {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: 'white',
+      borderRadius: 2,
+      fontWeight: 500,
+      '& fieldset': {
+        borderColor: '#e2e8f0',
+        borderWidth: '1.5px',
+      },
+      '&:hover fieldset': {
+        borderColor: theme.primary,
+        borderWidth: '1.5px',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: theme.primary,
+        borderWidth: '2.5px',
+        boxShadow: `0 0 0 3px ${theme.primary}1a`,
+      },
+    },
+    '& .MuiInputLabel-root': {
+      fontWeight: 500,
+      '&.Mui-focused': {
+        color: theme.primary,
+        fontWeight: 600,
+      },
+    },
+  };
+
+  // Dynamically update body class for the entire page
+  useEffect(() => {
+    const type = (defaultAccountType || 'SB').toLowerCase();
+    const className = `theme-${type}`;
+    document.body.classList.add(className);
+    return () => {
+      document.body.classList.remove(className);
+    };
+  }, [defaultAccountType]);
+
   const [memberId, setMemberId] = useState('');
   const [memberInfo, setMemberInfo] = useState<any>(null);
   const [accountGroupId, setAccountGroupId] = useState<string>('');
@@ -440,12 +504,19 @@ const AccountOpeningForm: React.FC<Props> = ({
   const interests = interestsData?.data || [];
 
   return (
-    <Box sx={{ mt: 2, px: { xs: 1.5, sm: 2, md: 3 }, pb: 4 }}>
+    <Box sx={{
+      minHeight: '100vh',
+      background: `linear-gradient(180deg, ${theme.light} 0%, #f4f7f9 400px, #f4f7f9 100%)`,
+      px: { xs: 1.5, sm: 2, md: 3 },
+      pt: 2,
+      pb: 4,
+      transition: 'background 0.3s ease'
+    }}>
       <Typography
         variant="h4"
         sx={{
           fontWeight: 700,
-          color: '#1a237e',
+          color: theme.primary,
           mb: 3,
           fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' }
         }}
@@ -455,6 +526,9 @@ const AccountOpeningForm: React.FC<Props> = ({
       <Card sx={{
         boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
         borderRadius: '16px',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(10px)',
+        border: `1px solid ${theme.primary}15`,
       }}>
         <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
           <Grid container spacing={4}>
@@ -467,7 +541,7 @@ const AccountOpeningForm: React.FC<Props> = ({
                 border: '1px solid #e3f2fd',
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                  <PersonIcon sx={{ color: '#6366f1', fontSize: 28 }} />
+                  <PersonIcon sx={{ color: theme.primary, fontSize: 28 }} />
                   <Typography variant="h6" sx={{ fontWeight: 600, color: '#1f2937' }}>
                     Member Information
                   </Typography>
@@ -493,13 +567,13 @@ const AccountOpeningForm: React.FC<Props> = ({
                       onClick={() => handleGetInfo()}
                       disabled={loadingMember || !memberId}
                       sx={{
-                        background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                        background: theme.gradient,
                         fontWeight: 600,
                         borderRadius: '10px',
-                        boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+                        boxShadow: theme.shadow,
                         '&:hover': {
-                          background: 'linear-gradient(135deg, #4338ca 0%, #4f46e5 100%)',
-                          boxShadow: '0 6px 16px rgba(79, 70, 229, 0.4)',
+                          background: theme.secondary,
+                          boxShadow: theme.shadow,
                         },
                         '&:disabled': {
                           background: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
@@ -651,7 +725,7 @@ const AccountOpeningForm: React.FC<Props> = ({
                 border: '1px solid #dcfce7',
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                  <AccountBalanceIcon sx={{ color: '#10b981', fontSize: 28 }} />
+                  <AccountBalanceIcon sx={{ color: theme.primary, fontSize: 28 }} />
                   <Typography variant="h6" sx={{ fontWeight: 600, color: '#1f2937' }}>
                     Account Information
                   </Typography>
@@ -899,15 +973,15 @@ const AccountOpeningForm: React.FC<Props> = ({
                         onClick={handleSubmit}
                         disabled={!memberInfo || createAccountMutation.isPending}
                         sx={{
-                          background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                          background: theme.gradient,
                           px: 4,
                           py: 1.5,
                           fontWeight: 600,
                           borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                          boxShadow: theme.shadow,
                           '&:hover': {
-                            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                            boxShadow: '0 6px 16px rgba(16, 185, 129, 0.4)',
+                            background: theme.secondary,
+                            boxShadow: theme.shadow,
                           },
                         }}
                       >
