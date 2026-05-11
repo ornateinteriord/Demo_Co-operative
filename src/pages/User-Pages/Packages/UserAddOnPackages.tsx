@@ -287,7 +287,7 @@ export const UserAddOnPackages = () => {
                           planTerm: 'FD / 365 days',
                           planAmount: pkgAmount,
                           interestRate: 9.0,
-                          aadhaarNo: undefined,
+                          aadhaarNo: user.aadharcard_no,
                           panNo: user.Pan_no,
                           nomineeName: user.Nominee_name,
                           nomineeRelation: user.Nominee_Relation,
