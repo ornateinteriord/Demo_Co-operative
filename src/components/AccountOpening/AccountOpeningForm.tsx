@@ -21,6 +21,7 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { toast } from 'react-toastify';
 import * as AdminQueries from '../../queries/admin';
 import * as MemberQueries from '../../queries/Member';
+import { useCreatePaymentOrder } from '../../queries/Wallet/useWallet';
 
 export type AccountType = 'SB' | 'CA' | 'RD' | 'FD' | 'PIGMY' | 'MIS' | string;
 
@@ -264,6 +265,9 @@ const AccountOpeningForm: React.FC<Props> = ({
   const memberCreateAccount = MemberQueries.useCreateMemberAccount();
   const createAccountMutation = isUser ? memberCreateAccount : adminCreateAccount;
 
+  // Cashfree Order Mutation
+  const { mutate: createOrder, isPending: isOrderPending } = useCreatePaymentOrder();
+
   console.log('AccountOpeningForm Debug:', { isUser, accountGroupId, defaultAccountType });
   console.log('Account Groups Data:', accountGroupsData);
   console.log('Interests Data:', interestsData);
@@ -454,6 +458,50 @@ const AccountOpeningForm: React.FC<Props> = ({
       return;
     }
 
+    if (isUser) {
+      // Members must pay via Cashfree
+      const orderData = {
+        payment_type: 'ACCOUNT_OPENING',
+        member_id: memberId,
+        amount: parseFloat(form.amount),
+        mobileno: memberInfo.contactno || memberInfo.mobileno,
+        Name: memberInfo.name || memberInfo.Name,
+        email: memberInfo.emailid || memberInfo.email || "customer@example.com",
+        account_type: accountGroupId, // This is the group ID
+        // Extra metadata for account creation in webhook
+        account_operation: form.accountOperation,
+        interest_rate: parseFloat(form.interestRate) || 0,
+        duration: parseInt(form.duration) || 0,
+        date_of_maturity: form.maturityDate || null,
+        introducer: form.introducer,
+        agent: form.agent,
+        joint_member: form.accountOperation === 'Any two' ? form.jointMember : null,
+      };
+
+      createOrder(orderData, {
+        onSuccess: (data: any) => {
+          if (data?.payment_session_id && (window as any).Cashfree) {
+            const cashfreeMode = data.cashfree_env || "sandbox";
+            const cashfreeInstance = new (window as any).Cashfree({
+              mode: cashfreeMode,
+            });
+
+            cashfreeInstance.checkout({
+              paymentSessionId: data.payment_session_id
+            });
+            toast.info("Redirecting to payment gateway...");
+          } else {
+            toast.error("Failed to initialize payment gateway. Please try again.");
+          }
+        },
+        onError: (error: any) => {
+          toast.error(error?.response?.data?.message || "Failed to initiate payment");
+        }
+      });
+      return;
+    }
+
+    // Admin-side account creation (Direct)
     try {
       const accountData = {
         branch_id: memberInfo.branch_id,
@@ -745,12 +793,20 @@ const AccountOpeningForm: React.FC<Props> = ({
                         readOnly={isUser}
                         inputProps={{ readOnly: isUser }}
                       >
-                        <MenuItem value="SB">SB</MenuItem>
-                        <MenuItem value="CA">CA</MenuItem>
-                        <MenuItem value="RD">RD</MenuItem>
-                        <MenuItem value="FD">FD</MenuItem>
-                        <MenuItem value="PIGMY">PIGMY</MenuItem>
-                        <MenuItem value="MIS">MIS</MenuItem>
+                        {isUser ? (
+                          <MenuItem value={defaultAccountType?.toUpperCase()}>
+                            {defaultAccountType?.toUpperCase()}
+                          </MenuItem>
+                        ) : (
+                          <>
+                            <MenuItem value="SB">SB</MenuItem>
+                            <MenuItem value="CA">CA</MenuItem>
+                            <MenuItem value="RD">RD</MenuItem>
+                            <MenuItem value="FD">FD</MenuItem>
+                            <MenuItem value="PIGMY">PIGMY</MenuItem>
+                            <MenuItem value="MIS">MIS</MenuItem>
+                          </>
+                        )}
                       </Select>
                     </FormControl>
                   </Grid>
@@ -971,7 +1027,7 @@ const AccountOpeningForm: React.FC<Props> = ({
                         variant="contained"
                         size="large"
                         onClick={handleSubmit}
-                        disabled={!memberInfo || createAccountMutation.isPending}
+                        disabled={!memberInfo || createAccountMutation.isPending || isOrderPending}
                         sx={{
                           background: theme.gradient,
                           px: 4,
@@ -985,7 +1041,9 @@ const AccountOpeningForm: React.FC<Props> = ({
                           },
                         }}
                       >
-                        {createAccountMutation.isPending ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Create Account'}
+                        {createAccountMutation.isPending || isOrderPending ? (
+                          <CircularProgress size={24} sx={{ color: 'white' }} />
+                        ) : isUser ? 'Pay & Create Account' : 'Create Account'}
                       </Button>
                     </Box>
                   </Grid>

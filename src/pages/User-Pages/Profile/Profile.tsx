@@ -16,6 +16,9 @@ import {
   InputAdornment,
   Avatar,
   Typography,
+  Grid,
+  IconButton,
+  CircularProgress,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PersonIcon from "@mui/icons-material/Person";
@@ -25,8 +28,10 @@ import WcIcon from "@mui/icons-material/Wc";
 import BadgeIcon from "@mui/icons-material/Badge";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import HomeIcon from "@mui/icons-material/Home";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import DeleteIcon from "@mui/icons-material/Delete";
 import UserContext from "../../../context/user/userContext";
-import { useUpdateMember, useImageKitUpload } from "../../../api/Memeber";
+import { useUpdateMember, useImageKitUpload, useUploadKYCDocument } from "../../../api/Memeber";
 import { LoadingComponent } from "../../../App";
 import { toast } from "react-toastify";
 
@@ -50,6 +55,14 @@ const Profile: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
 
+  // Identity document images
+  const [panImage, setPanImage] = useState<string | null>(null);
+  const [aadhaarImage, setAadhaarImage] = useState<string | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+
+  const uploadPanImage = useUploadKYCDocument(user?.Member_id || '', 'pan');
+  const uploadAadhaarImage = useUploadKYCDocument(user?.Member_id || '', 'aadhaar');
+
   const imageKit = useImageKitUpload(user?.Member_id)
 
   // Update state when user data is fetched
@@ -70,6 +83,9 @@ const Profile: React.FC = () => {
         aadharcard_no: user.aadharcard_no ?? "",
         address: user.address ?? "",
       });
+      // Load existing document images if saved
+      setPanImage(user.panImage || null);
+      setAadhaarImage(user.aadhaarImage || null);
     }
   }, [user]);
 
@@ -126,6 +142,24 @@ const Profile: React.FC = () => {
 
   const handleSubmit = () => {
     updateMember.mutate(formData);
+  };
+
+  // ── Document image upload handlers ──────────────────────────
+  const handleDocImageUpload = async (type: 'pan' | 'aadhaar', file: File) => {
+    if (!file.type.startsWith('image/')) { toast.error('Please upload an image file'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('File size must be less than 5MB'); return; }
+    setUploadingDoc(type);
+    try {
+      const uploader = type === 'pan' ? uploadPanImage : uploadAadhaarImage;
+      const result = await uploader.mutateAsync(file);
+      if (type === 'pan') setPanImage(result.url);
+      else setAadhaarImage(result.url);
+      toast.success(`${type === 'pan' ? 'PAN' : 'Aadhaar'} image uploaded!`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Upload failed');
+    } finally {
+      setUploadingDoc(null);
+    }
   };
 
   return (
@@ -273,6 +307,7 @@ const Profile: React.FC = () => {
                 }}
               />
 
+
               {/* Bond Certificate Required Fields */}
               <TextField
                 label="Date of Birth"
@@ -339,6 +374,100 @@ const Profile: React.FC = () => {
                   ),
                 }}
               />
+
+              {/* ── Identity Document Image Uploads ───────────────── */}
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#0a2558', mb: 1.5 }}>
+                  Identity Document Images
+                </Typography>
+                <Grid container spacing={2}>
+                  {/* PAN Image */}
+                  <Grid item xs={12} sm={6}>
+                    <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={1.5}>
+                          <BadgeIcon sx={{ color: '#0a2558', mr: 1 }} />
+                          <Typography variant="subtitle2" fontWeight="bold">PAN Card Image</Typography>
+                        </Box>
+                        {panImage ? (
+                          <Box>
+                            <Box
+                              component="img"
+                              src={panImage}
+                              alt="PAN Card"
+                              sx={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 1, mb: 1 }}
+                            />
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                              <Button size="small" variant="outlined" onClick={() => window.open(panImage, '_blank')} sx={{ flex: 1, mr: 1 }}>View</Button>
+                              <IconButton color="error" size="small" onClick={() => setPanImage(null)} disabled={uploadingDoc === 'pan'}>
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Box>
+                            <input accept="image/*" id="upload-pan" type="file" style={{ display: 'none' }}
+                              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocImageUpload('pan', f); }}
+                              disabled={uploadingDoc === 'pan'}
+                            />
+                            <label htmlFor="upload-pan">
+                              <Button variant="outlined" component="span" fullWidth disabled={uploadingDoc === 'pan'}
+                                startIcon={uploadingDoc === 'pan' ? <CircularProgress size={18} /> : <CloudUploadIcon />}
+                                sx={{ height: 140, borderStyle: 'dashed', borderWidth: 2, '&:hover': { borderColor: '#0a2558', bgcolor: 'rgba(10,37,88,0.04)' } }}
+                              >
+                                {uploadingDoc === 'pan' ? 'Uploading...' : 'Upload PAN Image'}
+                              </Button>
+                            </label>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Aadhaar Image */}
+                  <Grid item xs={12} sm={6}>
+                    <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={1.5}>
+                          <FingerprintIcon sx={{ color: '#0a2558', mr: 1 }} />
+                          <Typography variant="subtitle2" fontWeight="bold">Aadhaar Card Image</Typography>
+                        </Box>
+                        {aadhaarImage ? (
+                          <Box>
+                            <Box
+                              component="img"
+                              src={aadhaarImage}
+                              alt="Aadhaar Card"
+                              sx={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 1, mb: 1 }}
+                            />
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                              <Button size="small" variant="outlined" onClick={() => window.open(aadhaarImage, '_blank')} sx={{ flex: 1, mr: 1 }}>View</Button>
+                              <IconButton color="error" size="small" onClick={() => setAadhaarImage(null)} disabled={uploadingDoc === 'aadhaar'}>
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Box>
+                            <input accept="image/*" id="upload-aadhaar" type="file" style={{ display: 'none' }}
+                              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocImageUpload('aadhaar', f); }}
+                              disabled={uploadingDoc === 'aadhaar'}
+                            />
+                            <label htmlFor="upload-aadhaar">
+                              <Button variant="outlined" component="span" fullWidth disabled={uploadingDoc === 'aadhaar'}
+                                startIcon={uploadingDoc === 'aadhaar' ? <CircularProgress size={18} /> : <CloudUploadIcon />}
+                                sx={{ height: 140, borderStyle: 'dashed', borderWidth: 2, '&:hover': { borderColor: '#0a2558', bgcolor: 'rgba(10,37,88,0.04)' } }}
+                              >
+                                {uploadingDoc === 'aadhaar' ? 'Uploading...' : 'Upload Aadhaar Image'}
+                              </Button>
+                            </label>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Box>
 
               <FormControl>
                 <FormLabel sx={{ color: "#0a2558", mb: 1, fontWeight: 'bold' }}>Profile Image</FormLabel>

@@ -23,11 +23,12 @@ import { toast } from 'react-toastify';
 interface AddMoneyDialogProps {
     open: boolean;
     onClose: () => void;
+    selectedAccount?: any; // Pre-selected account object
 }
 
-const AddMoneyDialog: React.FC<AddMoneyDialogProps> = ({ open, onClose }) => {
+const AddMoneyDialog: React.FC<AddMoneyDialogProps> = ({ open, onClose, selectedAccount: preSelectedAccount }) => {
     const [amount, setAmount] = useState('');
-    const [selectedAccount, setSelectedAccount] = useState('');
+    const [selectedAccountId, setSelectedAccountId] = useState('');
 
     const userId = TokenService.getMemberId();
     const { data: memberData } = useGetMemberById(userId || '');
@@ -37,7 +38,7 @@ const AddMoneyDialog: React.FC<AddMoneyDialogProps> = ({ open, onClose }) => {
     // Note: Cashfree SDK is initialized dynamically in handleAddMoney 
     // after receiving cashfree_env from backend response
 
-    // Flatten accounts for dropdown - Filter for FD, RD, PIGMY accounts only
+    // Flatten accounts for dropdown
     const allAccounts = accountsData?.data?.accountTypes?.flatMap((accType: any) =>
         accType.accounts.map((acc: any) => ({
             ...acc,
@@ -46,30 +47,58 @@ const AddMoneyDialog: React.FC<AddMoneyDialogProps> = ({ open, onClose }) => {
         }))
     ) || [];
 
-    // Debug: Log all accounts to see the actual account_type values
-    console.log("All accounts for Add Money:", allAccounts);
-    console.log("Account types available:", allAccounts.map((a: any) => ({ type: a.account_type, group: a.account_group_name })));
+    // Filter to show ONLY ACTIVE accounts
+    let myAccounts = allAccounts.filter((acc: any) => acc.status?.toLowerCase() === 'active');
 
-    // Filter to show only FD, RD, PIGMY, MIS accounts for Add Money
-    const myAccounts = allAccounts.filter((acc: any) => {
-        const accountGroup = acc.account_group_name?.toUpperCase();
-        return accountGroup === 'FD' ||
-            accountGroup === 'RD' ||
-            accountGroup === 'PIGMY' ||
-            accountGroup === 'MIS';
-    });
+    // If a pre-selected account is provided, show ONLY that account
+    if (preSelectedAccount && myAccounts.length > 0) {
+        myAccounts = myAccounts.filter(acc => {
+            const matchNo = preSelectedAccount.account_no && acc.account_no === preSelectedAccount.account_no;
+            const matchId = preSelectedAccount._id && acc._id === preSelectedAccount._id;
+            const matchAccId = preSelectedAccount.account_id && acc.account_id === preSelectedAccount.account_id;
+            
+            return matchNo || matchId || matchAccId;
+        });
+    }
+
+    // Auto-select account
+    React.useEffect(() => {
+        if (open && myAccounts.length > 0) {
+            // Priority 1: Match by ID if pre-selected
+            if (preSelectedAccount) {
+                const match = myAccounts.find(acc => 
+                    (preSelectedAccount.account_no && acc.account_no === preSelectedAccount.account_no) || 
+                    (preSelectedAccount._id && acc._id === preSelectedAccount._id) ||
+                    (preSelectedAccount.account_id && acc.account_id === preSelectedAccount.account_id)
+                );
+                if (match) {
+                    console.log("DEBUG: Auto-selecting matched account:", match._id || match.account_id);
+                    setSelectedAccountId(match._id || match.account_id || '');
+                    return;
+                }
+            }
+            
+            // Priority 2: If only one account remains, select it
+            if (myAccounts.length === 1) {
+                console.log("DEBUG: Auto-selecting only available account:", myAccounts[0]._id || myAccounts[0].account_id);
+                setSelectedAccountId(myAccounts[0]._id || myAccounts[0].account_id || '');
+            }
+        }
+    }, [open, preSelectedAccount, myAccounts]);
 
     const handleClose = () => {
         setAmount('');
-        setSelectedAccount('');
+        setSelectedAccountId('');
         onClose();
     };
 
     const handleAddMoney = () => {
         const finalAmount = parseFloat(amount);
-        if (finalAmount > 0 && selectedAccount) {
+        if (finalAmount > 0 && selectedAccountId) {
             // Find the selected account object to get all details
-            const accountDetails = myAccounts.find((acc: any) => acc._id === selectedAccount);
+            const accountDetails = myAccounts.find((acc: any) => 
+                (acc._id === selectedAccountId) || (acc.account_id === selectedAccountId)
+            );
 
             if (!accountDetails) {
                 toast.error("Selected account not found. Please try again.");
@@ -77,18 +106,19 @@ const AddMoneyDialog: React.FC<AddMoneyDialogProps> = ({ open, onClose }) => {
             }
 
             const request = {
-                member_id: memberData?.data?.member_id,
+                member_id: memberData?.data?.member_id || memberData?.data?.Member_id || userId,
                 amount: finalAmount,
-                mobileno: memberData?.data?.contactno,
-                Name: memberData?.data?.name,
-                email: memberData?.data?.emailid,
-                account_id: accountDetails._id,
+                mobileno: memberData?.data?.contactno || memberData?.data?.mobileno,
+                Name: memberData?.data?.name || memberData?.data?.Name,
+                email: memberData?.data?.emailid || memberData?.data?.email,
+                account_id: accountDetails._id || accountDetails.account_id,
                 account_no: accountDetails.account_no,
-                account_type: accountDetails.account_type
+                account_type: accountDetails.account_type,
+                account_group_name: accountDetails.account_group_name, // used for correct return URL
             };
 
             if (!request.member_id) {
-                toast.error("Missing member information. Please try again.");
+                toast.error("Missing member identification. Please try logging in again.");
                 return;
             }
 
@@ -164,10 +194,13 @@ const AddMoneyDialog: React.FC<AddMoneyDialogProps> = ({ open, onClose }) => {
                     <TextField
                         select
                         fullWidth
-                        value={selectedAccount}
-                        onChange={(e) => setSelectedAccount(e.target.value)}
+                        value={selectedAccountId}
+                        onChange={(e) => setSelectedAccountId(e.target.value)}
                         label="Select Account"
-                        disabled={accountsLoading}
+                        disabled={accountsLoading || !!preSelectedAccount}
+                        InputProps={{
+                            readOnly: !!preSelectedAccount
+                        }}
                     >
                         {accountsLoading ? (
                             <MenuItem disabled>
@@ -179,7 +212,7 @@ const AddMoneyDialog: React.FC<AddMoneyDialogProps> = ({ open, onClose }) => {
                             </MenuItem>
                         ) : (
                             myAccounts.map((acc: any) => (
-                                <MenuItem key={acc._id} value={acc._id}>
+                                <MenuItem key={acc._id || acc.account_id} value={acc._id || acc.account_id}>
                                     {acc.account_group_name} - ₹{acc.account_amount.toFixed(2)} ({acc.account_no})
                                 </MenuItem>
                             ))
@@ -211,7 +244,7 @@ const AddMoneyDialog: React.FC<AddMoneyDialogProps> = ({ open, onClose }) => {
                 <Button
                     onClick={handleAddMoney}
                     variant="contained"
-                    disabled={isPending || !amount || !selectedAccount || parseFloat(amount) <= 0}
+                    disabled={isPending || !amount || !selectedAccountId || parseFloat(amount) <= 0}
                     sx={{
                         borderRadius: '8px',
                         background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
