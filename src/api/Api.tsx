@@ -67,3 +67,12 @@ export const patch = async (path: string, data?: any) => {
     throw error;
   }
 };
+
+export const del = async (path: string) => {
+  try {
+    const response = await api.delete(path);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

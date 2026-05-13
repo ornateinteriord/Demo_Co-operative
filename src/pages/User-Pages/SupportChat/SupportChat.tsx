@@ -15,14 +15,18 @@ const SupportChat: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
+    const otherParticipantId = supportRoom?.participants.find(p => p !== currentUserId);
+
     const {
         messages,
         setMessages,
         isConnected,
+        recipientOnline,
         isTyping,
         sendMessage,
         sendTypingIndicator,
-    } = useChatSocket(supportRoom?.roomId);
+        deleteMessage,
+    } = useChatSocket(supportRoom?.roomId, otherParticipantId);
 
     useEffect(() => {
         const initSupportChat = async () => {
@@ -117,7 +121,19 @@ const SupportChat: React.FC = () => {
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>Chat with our support team for any assistance</Typography>
             </Box>
             <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                <ChatWindow roomId={supportRoom.roomId} messages={messages} onSendMessage={handleSendMessage} onTyping={sendTypingIndicator} isConnected={isConnected} isTyping={isTyping} isLoading={isLoadingMessages} recipientName={adminParticipant?.name || 'Support'} recipientRole="admin" />
+                <ChatWindow 
+                    roomId={supportRoom.roomId} 
+                    messages={messages} 
+                    onSendMessage={handleSendMessage} 
+                    onTyping={sendTypingIndicator} 
+                    isConnected={isConnected} 
+                    isRecipientOnline={recipientOnline}
+                    isTyping={isTyping} 
+                    isLoading={isLoadingMessages} 
+                    recipientName={adminParticipant?.name || 'Support'} 
+                    recipientRole="admin" 
+                    onDeleteMessage={deleteMessage}
+                />
             </Box>
         </Box>
     );

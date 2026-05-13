@@ -20,7 +20,10 @@ const Chat: React.FC = () => {
     const [showNewChatDialog, setShowNewChatDialog] = useState(false);
     const [directMembers, setDirectMembers] = useState<any[]>([]);
 
-    const { messages, setMessages, isConnected, isTyping, sendMessage, sendTypingIndicator } = useChatSocket(selectedRoomId);
+    const selectedRoom = rooms.find((r) => r.roomId === selectedRoomId);
+    const otherParticipantId = selectedRoom?.participants.find(p => p !== currentUserId);
+
+    const { messages, setMessages, isConnected, recipientOnline, isTyping, sendMessage, sendTypingIndicator, deleteMessage } = useChatSocket(selectedRoomId, otherParticipantId);
 
     useEffect(() => {
         try {
@@ -102,8 +105,6 @@ const Chat: React.FC = () => {
         setShowChatWindow(true);
     };
 
-    const selectedRoom = rooms.find((r) => r.roomId === selectedRoomId);
-    
     // Merge actual rooms with direct members who don't have a room yet
     const allDisplayRooms = [...rooms];
     
@@ -145,7 +146,20 @@ const Chat: React.FC = () => {
                 </Box>
                 <Box sx={{ flex: 1, display: { xs: !showChatWindow && !selectedRoomId ? 'none' : 'flex', lg: 'flex' } }}>
                     {selectedRoomId ? (
-                        <ChatWindow roomId={selectedRoomId} messages={messages} onSendMessage={sendMessage} onTyping={sendTypingIndicator} isConnected={isConnected} isTyping={isTyping} isLoading={isLoadingMessages} recipientName={otherParticipant?.name || 'User'} recipientRole={otherParticipant?.role || 'user'} onBack={() => { setShowChatWindow(false); setSelectedRoomId(''); window.dispatchEvent(new CustomEvent('active-chat-room', { detail: null })); }} />
+                        <ChatWindow 
+                            roomId={selectedRoomId} 
+                            messages={messages} 
+                            onSendMessage={sendMessage} 
+                            onTyping={sendTypingIndicator} 
+                            isConnected={isConnected} 
+                            isRecipientOnline={recipientOnline}
+                            isTyping={isTyping} 
+                            isLoading={isLoadingMessages} 
+                            recipientName={otherParticipant?.name || 'User'} 
+                            recipientRole={otherParticipant?.role || 'user'} 
+                            onDeleteMessage={deleteMessage}
+                            onBack={() => { setShowChatWindow(false); setSelectedRoomId(''); window.dispatchEvent(new CustomEvent('active-chat-room', { detail: null })); }} 
+                        />
                     ) : (
                         <Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', bgcolor: 'background.default', flex: 1 }}>
                             <Paper sx={{ width: 96, height: 96, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.1) 0%, rgba(156, 39, 176, 0.1) 100%)', mb: 3, boxShadow: 3 }}>
