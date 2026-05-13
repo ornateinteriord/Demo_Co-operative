@@ -20,7 +20,10 @@ const AdminChat: React.FC = () => {
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [showChatWindow, setShowChatWindow] = useState(false);
 
-    const { messages, setMessages, isConnected, isTyping, sendMessage, sendTypingIndicator } = useChatSocket(selectedRoomId);
+    const selectedRoom = rooms.find((r) => r.roomId === selectedRoomId);
+    const otherParticipantId = selectedRoom?.participants.find(p => p !== currentUserId);
+
+    const { messages, setMessages, isConnected, recipientOnline, isTyping, sendMessage, sendTypingIndicator, deleteMessage } = useChatSocket(selectedRoomId, otherParticipantId);
 
     useEffect(() => {
         try {
@@ -71,7 +74,6 @@ const AdminChat: React.FC = () => {
         setShowChatWindow(true);
     };
 
-    const selectedRoom = rooms.find((r) => r.roomId === selectedRoomId);
     const otherParticipant = selectedRoom?.participantDetails.find((p) => p.memberId !== currentUserId);
     const totalUnread = rooms.reduce((sum, room) => sum + (room.unreadCount || 0), 0);
 
@@ -98,7 +100,20 @@ const AdminChat: React.FC = () => {
                 </Box>
                 <Box sx={{ flex: 1, display: { xs: !showChatWindow && !selectedRoomId ? 'none' : 'flex', lg: 'flex' } }}>
                     {selectedRoomId ? (
-                        <ChatWindow roomId={selectedRoomId} messages={messages} onSendMessage={sendMessage} onTyping={sendTypingIndicator} isConnected={isConnected} isTyping={isTyping} isLoading={isLoadingMessages} recipientName={otherParticipant?.name || 'User'} recipientRole={otherParticipant?.role || 'user'} onBack={() => { setShowChatWindow(false); setSelectedRoomId(''); }} />
+                        <ChatWindow 
+                            roomId={selectedRoomId} 
+                            messages={messages} 
+                            onSendMessage={sendMessage} 
+                            onTyping={sendTypingIndicator} 
+                            isConnected={isConnected} 
+                            isRecipientOnline={recipientOnline}
+                            isTyping={isTyping} 
+                            isLoading={isLoadingMessages} 
+                            recipientName={otherParticipant?.name || 'User'} 
+                            recipientRole={otherParticipant?.role || 'user'} 
+                            onDeleteMessage={deleteMessage}
+                            onBack={() => { setShowChatWindow(false); setSelectedRoomId(''); }} 
+                        />
                     ) : (
                         <Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', bgcolor: 'background.default', flex: 1 }}>
                             <Paper sx={{ width: 96, height: 96, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(244, 67, 54, 0.1) 100%)', mb: 3, boxShadow: 3 }}>

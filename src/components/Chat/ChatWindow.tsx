@@ -15,11 +15,13 @@ interface ChatWindowProps {
     onSendMessage: (text: string) => void;
     onTyping?: (isTyping: boolean) => void;
     isConnected: boolean;
+    isRecipientOnline?: boolean;
     isTyping?: boolean;
     isLoading?: boolean;
     recipientName?: string;
     recipientRole?: string;
     onBack?: () => void;
+    onDeleteMessage?: (messageId: string) => void;
 }
 
 const ChatHeader = styled(AppBar)(({ theme }) => ({
@@ -45,11 +47,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     onSendMessage,
     onTyping,
     isConnected,
+    isRecipientOnline = false,
     isTyping = false,
     isLoading = false,
     recipientName = 'User',
     recipientRole = 'user',
     onBack,
+    onDeleteMessage,
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const currentUserId = useRef<string>('');
@@ -98,7 +102,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                     )}
                     <Avatar sx={{ background: 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)', mr: 2, position: 'relative' }}>
                         {recipientName.charAt(0).toUpperCase()}
-                        {isConnected && (
+                        {isRecipientOnline && (
                             <Circle sx={{ position: 'absolute', bottom: -2, right: -2, fontSize: 14, color: 'success.main', bgcolor: 'background.paper', borderRadius: '50%' }} />
                         )}
                     </Avatar>
@@ -109,8 +113,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                                 <Typography variant="caption" color="primary" sx={{ fontWeight: 500 }}>Typing...</Typography>
                             ) : (
                                 <>
-                                    {isConnected ? <Circle sx={{ fontSize: 8, color: 'success.main' }} /> : <WifiOff sx={{ fontSize: 12 }} />}
-                                    <Typography variant="caption" color="text.secondary">{isConnected ? 'Online' : 'Offline'}</Typography>
+                                    {isRecipientOnline ? (
+                                        <>
+                                            <Circle sx={{ fontSize: 8, color: 'success.main' }} />
+                                            <Typography variant="caption" color="text.secondary">Online</Typography>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <WifiOff sx={{ fontSize: 12, color: 'text.secondary' }} />
+                                            <Typography variant="caption" color="text.secondary">Offline</Typography>
+                                        </>
+                                    )}
                                 </>
                             )}
                             {recipientRole === 'admin' && (
@@ -136,7 +149,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 ) : (
                     <>
                         {messages.map((message, index) => (
-                            <MessageBubble key={message._id || `${message.roomId}-${index}`} message={message} isSent={message.senderId === currentUserId.current} showTimestamp={true} />
+                            <MessageBubble key={message._id || `${message.roomId}-${index}`} message={message} isSent={message.senderId === currentUserId.current} showTimestamp={true} onDelete={onDeleteMessage} />
                         ))}
                         <div ref={messagesEndRef} />
                     </>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { getSocket } from '../utils/socket';
 import { Socket } from 'socket.io-client';
-import { post, get } from '../api/Api';
+import { post, get, del } from '../api/Api';
 import { toast } from 'react-toastify';
 
 export interface Message {
@@ -34,9 +34,10 @@ export interface ChatRoom {
     unreadCount?: number;
 }
 
-export const useChatSocket = (roomId?: string) => {
+export const useChatSocket = (roomId?: string, recipientId?: string) => {
     const [messages, setMessages] = useState<Message[]>([]);
-    const [isConnected] = useState(true); // Always show as connected since we use REST API
+    const [isConnected, setIsConnected] = useState(false);
+    const [recipientOnline, setRecipientOnline] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const socketRef = useRef<Socket | null>(null);
@@ -57,13 +58,38 @@ export const useChatSocket = (roomId?: string) => {
         // Connection status - but we always show connected since REST works
         const handleConnect = () => {
             console.log('Socket connected');
+            setIsConnected(true);
+            
+            // Check recipient status on connect
+            if (recipientId) {
+                socket.emit('checkUserStatus', { userId: recipientId }, (response: { isOnline: boolean }) => {
+                    setRecipientOnline(response.isOnline);
+                });
+            }
         };
         const handleDisconnect = () => {
             console.log('Socket disconnected, using REST API');
+            setIsConnected(false);
         };
 
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
+        
+        // Listen for user status updates
+        const handleUserStatus = (data: { userId: string, status: 'online' | 'offline' }) => {
+            if (data.userId === recipientId) {
+                setRecipientOnline(data.status === 'online');
+            }
+        };
+        socket.on('userStatus', handleUserStatus);
+        
+        // Listen for message deletion
+        const handleMessageDeleted = (data: { messageId: string, roomId: string }) => {
+            if (data.roomId === roomId) {
+                setMessages(prev => prev.filter(m => m._id !== data.messageId));
+            }
+        };
+        socket.on('messageDeleted', handleMessageDeleted);
 
         // Join room if roomId is provided and socket is connected
         if (roomId && socket.connected) {
@@ -91,16 +117,20 @@ export const useChatSocket = (roomId?: string) => {
             return () => {
                 socket.off('receiveMessage', handleReceiveMessage);
                 socket.off('userTyping', handleUserTyping);
+                socket.off('userStatus', handleUserStatus);
+                socket.off('messageDeleted', handleMessageDeleted);
                 socket.off('connect', handleConnect);
                 socket.off('disconnect', handleDisconnect);
             };
         }
 
         return () => {
+            socket.off('userStatus', handleUserStatus);
+            socket.off('messageDeleted', handleMessageDeleted);
             socket.off('connect', handleConnect);
             socket.off('disconnect', handleDisconnect);
         };
-    }, [roomId]);
+    }, [roomId, recipientId]);
 
     // Polling for new messages (works even when socket fails on Vercel)
     useEffect(() => {
@@ -195,14 +225,32 @@ export const useChatSocket = (roomId?: string) => {
         [roomId]
     );
 
+    const deleteMessage = useCallback(
+        async (messageId: string) => {
+            try {
+                const response = await del(`/chat/message/${messageId}`);
+                if (response.success) {
+                    setMessages((prev) => prev.filter(m => m._id !== messageId));
+                    toast.success('Message deleted');
+                }
+            } catch (error) {
+                console.error('Failed to delete message:', error);
+                toast.error('Failed to delete message');
+            }
+        },
+        [roomId]
+    );
+
     return {
         messages,
         setMessages,
         isConnected,
+        recipientOnline,
         isTyping,
         isSending,
         sendMessage,
         sendTypingIndicator,
         markAsRead,
+        deleteMessage,
     };
 };
