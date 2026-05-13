@@ -26,7 +26,12 @@ class TokenService {
     if (!token) return null;
 
     try {
-      const decoded = jwtDecode<{ id: string; role: string; memberId: string }>(token);
+      const decoded = jwtDecode<any>(token);
+      
+      // Normalize memberId (handle both camelCase and snake_case)
+      if (decoded && !decoded.memberId && decoded.member_id) {
+          decoded.memberId = decoded.member_id;
+      }
 
       return decoded;
     } catch (error) {

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Message } from '../../hooks/useChatSocket';
-import { Box, Typography, Paper, IconButton } from '@mui/material';
+import { Box, Typography, Paper, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { Check, CheckCheck, Download, FileText, Volume2, ChevronDown, Trash2, Reply, Copy } from 'lucide-react';
 import { Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
@@ -15,6 +15,10 @@ interface MessageBubbleProps {
     showTimestamp?: boolean;
     onDelete?: (messageId: string) => void;
     onReply?: (message: Message) => void;
+    /** Mobile: called when user long-presses this message */
+    onSelectMessage?: (message: Message | null) => void;
+    /** Whether this message is currently selected (mobile long-press) */
+    isSelected?: boolean;
 }
 
 const SentBubble = styled(Paper)(({ theme }) => ({
@@ -56,9 +60,37 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     showTimestamp = true,
     onDelete,
     onReply,
+    onSelectMessage,
+    isSelected = false,
 }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [hovered, setHovered] = useState(false);
+
+    // Long-press detection for mobile
+    const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const touchMoved = useRef(false);
+
+    const handleTouchStart = useCallback(() => {
+        touchMoved.current = false;
+        longPressTimer.current = setTimeout(() => {
+            if (!touchMoved.current) {
+                onSelectMessage?.(message);
+            }
+        }, 500);
+    }, [message, onSelectMessage]);
+
+    const handleTouchMove = useCallback(() => {
+        touchMoved.current = true;
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    }, []);
+
+    const handleTouchEnd = useCallback(() => {
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    }, []);
 
     const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -112,6 +144,36 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     const isImage = message.messageType === 'image' && message.imageUrl;
     const isFile = message.messageType === 'file' && message.imageUrl;
 
+    // The chevron button — only shown on desktop hover
+    const ChevronButton = (
+        <IconButton
+            size="small"
+            onClick={handleMenuOpen}
+            sx={{
+                position: 'absolute',
+                top: -8,
+                ...(isSent ? { right: -8 } : { left: -8 }),
+                zIndex: 2,
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                padding: '2px',
+                color: 'text.secondary',
+                border: '1px solid',
+                borderColor: 'divider',
+                // Only visible when parent is hovered
+                opacity: hovered ? 1 : 0,
+                pointerEvents: hovered ? 'auto' : 'none',
+                transition: 'opacity 0.15s ease',
+                '&:hover': {
+                    bgcolor: 'action.hover',
+                    color: 'primary.main',
+                },
+            }}
+        >
+            <ChevronDown size={16} />
+        </IconButton>
+    );
+
     return (
         <>
             <Box
@@ -132,55 +194,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                         position: 'relative',
                     }}
                 >
-                    <Box sx={{ position: 'relative' }}>
-                        {isSent && (
-                            <IconButton
-                                size="small"
-                                onClick={handleMenuOpen}
-                                sx={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    right: -8,
-                                    zIndex: 2,
-                                    bgcolor: 'background.paper',
-                                    boxShadow: 1,
-                                    padding: '2px',
-                                    color: 'text.secondary',
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    '&:hover': {
-                                        bgcolor: 'action.hover',
-                                        color: 'primary.main',
-                                    },
-                                }}
-                            >
-                                <ChevronDown size={16} />
-                            </IconButton>
-                        )}
-                        {!isSent && (
-                            <IconButton
-                                size="small"
-                                onClick={handleMenuOpen}
-                                sx={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    left: -8,
-                                    zIndex: 2,
-                                    bgcolor: 'background.paper',
-                                    boxShadow: 1,
-                                    padding: '2px',
-                                    color: 'text.secondary',
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    '&:hover': {
-                                        bgcolor: 'action.hover',
-                                        color: 'primary.main',
-                                    },
-                                }}
-                            >
-                                <ChevronDown size={16} />
-                            </IconButton>
-                        )}
+                    <Box
+                        sx={{
+                            position: 'relative',
+                            outline: isSelected ? `2px solid ${theme.palette.primary.main}` : 'none',
+                            borderRadius: '16px',
+                            transition: 'outline 0.1s ease',
+                        }}
+                        // Desktop: show chevron on hover
+                        onMouseEnter={() => !isMobile && setHovered(true)}
+                        onMouseLeave={() => !isMobile && setHovered(false)}
+                        // Mobile: long press to select
+                        onTouchStart={isMobile ? handleTouchStart : undefined}
+                        onTouchMove={isMobile ? handleTouchMove : undefined}
+                        onTouchEnd={isMobile ? handleTouchEnd : undefined}
+                    >
+                        {/* Desktop only chevron button */}
+                        {!isMobile && ChevronButton}
+
                         <BubbleComponent elevation={1}>
                             {isImage && (
                                 <Box
@@ -342,45 +373,48 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 </Box>
             </Box>
 
-            <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-                transformOrigin={{ horizontal: isSent ? 'right' : 'left', vertical: 'top' }}
-                anchorOrigin={{ horizontal: isSent ? 'right' : 'left', vertical: 'bottom' }}
-                PaperProps={{
-                    elevation: 3,
-                    sx: { borderRadius: 2, minWidth: 150 }
-                }}
-            >
-                <MenuItem onClick={handleReply}>
-                    <ListItemIcon>
-                        <Reply size={18} />
-                    </ListItemIcon>
-                    <ListItemText primary="Reply" />
-                </MenuItem>
-
-                {message.text && (
-                    <MenuItem onClick={handleCopy}>
+            {/* Desktop dropdown menu */}
+            {!isMobile && (
+                <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleMenuClose}
+                    transformOrigin={{ horizontal: isSent ? 'right' : 'left', vertical: 'top' }}
+                    anchorOrigin={{ horizontal: isSent ? 'right' : 'left', vertical: 'bottom' }}
+                    PaperProps={{
+                        elevation: 3,
+                        sx: { borderRadius: 2, minWidth: 150 }
+                    }}
+                >
+                    <MenuItem onClick={handleReply}>
                         <ListItemIcon>
-                            <Copy size={18} />
+                            <Reply size={18} />
                         </ListItemIcon>
-                        <ListItemText primary="Copy" />
+                        <ListItemText primary="Reply" />
                     </MenuItem>
-                )}
 
-                {isSent && (
-                    <>
-                        <Divider />
-                        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+                    {message.text && (
+                        <MenuItem onClick={handleCopy}>
                             <ListItemIcon>
-                                <Trash2 size={18} className="text-error" />
+                                <Copy size={18} />
                             </ListItemIcon>
-                            <ListItemText primary="Delete" />
+                            <ListItemText primary="Copy" />
                         </MenuItem>
-                    </>
-                )}
-            </Menu>
+                    )}
+
+                    {isSent && (
+                        <>
+                            <Divider />
+                            <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+                                <ListItemIcon>
+                                    <Trash2 size={18} className="text-error" />
+                                </ListItemIcon>
+                                <ListItemText primary="Delete" />
+                            </MenuItem>
+                        </>
+                    )}
+                </Menu>
+            )}
 
             {message.imageUrl && (
                 <ImageLightbox

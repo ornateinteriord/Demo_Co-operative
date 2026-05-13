@@ -44,7 +44,6 @@ import AutorenewIcon from '@mui/icons-material/Autorenew';
 import TokenService from '../../../api/token/tokenService';
 import {
   useVerifyPayment,
-  parsePaymentRedirectParams,
   useGetTransactionDetails,
   useGetWalletOverview,
   useGetMemberDetails,
@@ -89,17 +88,46 @@ const UserDashboard = () => {
   const isPackageActive = memberDetails?.upgrade_status === 'Active';
 
   useEffect(() => {
-    const paymentParams = parsePaymentRedirectParams(searchParams);
-    if (paymentParams.order_id && paymentParams.payment_status && !paymentProcessed) {
+    const orderId = searchParams.get('order_id');
+    const orderStatus = searchParams.get('order_status');
+
+    if (orderId && orderStatus && !paymentProcessed) {
       setPaymentProcessed(true);
-      verifyPayment(paymentParams.order_id, {
-        onSuccess: () => {
-          setSearchParams({});
-          refetchTransactions();
-          refetchMemberDetails();
-        },
-        onError: () => setSearchParams({})
-      });
+      
+      let normalizedStatus = (orderStatus || '').toUpperCase();
+      // Handle case where Cashfree didn't replace the placeholder
+      if (normalizedStatus === '{ORDER_STATUS}') {
+        normalizedStatus = 'PENDING';
+      }
+      console.log("💳 Dashboard Payment Redirect Status:", normalizedStatus);
+
+      if (['PAID', 'SUCCESS', 'PENDING', 'ACTIVE'].includes(normalizedStatus)) {
+        toast.info("Verifying payment status...");
+        verifyPayment(orderId, {
+          onSuccess: (data: any) => {
+            const status = data?.payment_status || data?.status;
+            if (status === 'PAID' || status === 'SUCCESS' || status === 'Completed') {
+              toast.success("Payment successful!");
+              refetchTransactions();
+              refetchMemberDetails();
+            } else {
+              toast.info(`Payment status: ${status}`);
+            }
+            setSearchParams({});
+          },
+          onError: (error: any) => {
+            console.error("❌ Verification error:", error);
+            toast.error("Payment verification failed.");
+            setSearchParams({});
+          }
+        });
+      } else if (normalizedStatus === 'CANCELLED') {
+        toast.warning("Payment was cancelled.");
+        setSearchParams({});
+      } else {
+        toast.error(`Payment ${orderStatus}. Please try again.`);
+        setSearchParams({});
+      }
     }
   }, [searchParams, paymentProcessed, verifyPayment, setSearchParams, refetchTransactions, refetchMemberDetails]);
 

@@ -10,7 +10,7 @@ export const initializeSocket = (): Socket => {
 
     const token = TokenService.getToken();
     const memberId = TokenService.getMemberId();
-    const apiUrl = import.meta.env.VITE_MLM_API_URL || 'http://localhost:5051';
+    const apiUrl = import.meta.env.VITE_MLM_API_URL || 'http://localhost:5000';
 
     socket = io(apiUrl, {
         auth: { token },

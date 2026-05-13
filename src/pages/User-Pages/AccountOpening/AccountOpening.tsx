@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import AccountOpeningForm from '../../../components/AccountOpening/AccountOpeningForm';
-import { 
-  Box, Paper, Typography, Container, Button, Grid, IconButton, 
-  Divider, TextField, Dialog, DialogTitle, DialogContent, 
+import {
+  Box, Paper, Typography, Container, Button, Grid, IconButton,
+  Divider, TextField, Dialog, DialogTitle, DialogContent,
   DialogActions, FormControl, InputLabel, Select, MenuItem,
-  CircularProgress, InputAdornment 
+  CircularProgress, InputAdornment
 } from '@mui/material';
 import TokenService from '../../../api/token/tokenService';
 import HistoryIcon from '@mui/icons-material/History';
@@ -21,72 +21,108 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import AddIcon from '@mui/icons-material/Add';
+import AddMoneyDialog from '../../../components/Wallet/AddMoneyDialog';
 
 const ACCOUNT_THEMES: Record<string, any> = {
-    SB: {
-        primary: '#1a237e',
-        secondary: '#0d47a1',
-        light: '#bfdbfe',
-        gradient: 'linear-gradient(135deg, #1a237e 0%, #0f172a 100%)',
-        shadow: '0 4px 14px 0 rgba(26, 35, 126, 0.25)',
-    },
-    CA: {
-        primary: '#1b5e20',
-        secondary: '#2e7d32',
-        light: '#bbf7d0',
-        gradient: 'linear-gradient(135deg, #1b5e20 0%, #064e3b 100%)',
-        shadow: '0 4px 14px 0 rgba(27, 94, 32, 0.25)',
-    },
-    RD: {
-        primary: '#e65100',
-        secondary: '#ef6c00',
-        light: '#fed7aa',
-        gradient: 'linear-gradient(135deg, #e65100 0%, #7c2d12 100%)',
-        shadow: '0 4px 14px 0 rgba(230, 81, 0, 0.25)',
-    },
-    FD: {
-        primary: '#4a148c',
-        secondary: '#6a1b9a',
-        light: '#e9d5ff',
-        gradient: 'linear-gradient(135deg, #4a148c 0%, #4c1d95 100%)',
-        shadow: '0 4px 14px 0 rgba(74, 20, 140, 0.25)',
-    },
-    PIGMY: {
-        primary: '#f57f17',
-        secondary: '#fbc02d',
-        light: '#fef08a',
-        gradient: 'linear-gradient(135deg, #f57f17 0%, #b45309 100%)',
-        shadow: '0 4px 14px 0 rgba(245, 127, 23, 0.25)',
-    },
-    MIS: {
-        primary: '#006064',
-        secondary: '#00838f',
-        light: '#99f6e4',
-        gradient: 'linear-gradient(135deg, #006064 0%, #164e63 100%)',
-        shadow: '0 4px 14px 0 rgba(0, 96, 100, 0.25)',
-    }
+  SB: {
+    primary: '#1a237e',
+    secondary: '#0d47a1',
+    light: '#bfdbfe',
+    gradient: 'linear-gradient(135deg, #1a237e 0%, #0f172a 100%)',
+    shadow: '0 4px 14px 0 rgba(26, 35, 126, 0.25)',
+  },
+  CA: {
+    primary: '#1b5e20',
+    secondary: '#2e7d32',
+    light: '#bbf7d0',
+    gradient: 'linear-gradient(135deg, #1b5e20 0%, #064e3b 100%)',
+    shadow: '0 4px 14px 0 rgba(27, 94, 32, 0.25)',
+  },
+  RD: {
+    primary: '#e65100',
+    secondary: '#ef6c00',
+    light: '#fed7aa',
+    gradient: 'linear-gradient(135deg, #e65100 0%, #7c2d12 100%)',
+    shadow: '0 4px 14px 0 rgba(230, 81, 0, 0.25)',
+  },
+  FD: {
+    primary: '#4a148c',
+    secondary: '#6a1b9a',
+    light: '#e9d5ff',
+    gradient: 'linear-gradient(135deg, #4a148c 0%, #4c1d95 100%)',
+    shadow: '0 4px 14px 0 rgba(74, 20, 140, 0.25)',
+  },
+  PIGMY: {
+    primary: '#f57f17',
+    secondary: '#fbc02d',
+    light: '#fef08a',
+    gradient: 'linear-gradient(135deg, #f57f17 0%, #b45309 100%)',
+    shadow: '0 4px 14px 0 rgba(245, 127, 23, 0.25)',
+  },
+  MIS: {
+    primary: '#006064',
+    secondary: '#00838f',
+    light: '#99f6e4',
+    gradient: 'linear-gradient(135deg, #006064 0%, #164e63 100%)',
+    shadow: '0 4px 14px 0 rgba(0, 96, 100, 0.25)',
+  }
 };
 
 const UserAccountOpening = () => {
-  const { type } = useParams<{ type: string }>();
+  useParams<{ type: string; }>()
   const navigate = useNavigate();
   const memberId = TokenService.getMemberId() || '';
   const [showBalance, setShowBalance] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Self Transfer State
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [transferAmount, setTransferAmount] = useState('');
   const [targetAccountNo, setTargetAccountNo] = useState('');
 
   // Map route param to account type
-  const rawType = type?.toUpperCase() || 'SB';
-  const accountType = rawType === 'CUR' || rawType === 'CA' ? 'CA' : (rawType === 'PIGMY' ? 'PIGMY' : rawType);
+  const { type: rawType } = useParams();
+
+  // Map internal codes to friendly names if needed
+  const getFriendlyType = (type: string | undefined) => {
+    const t = (type || '').toUpperCase();
+    if (t === 'AGP001') return 'SB';
+    if (t === 'AGP002') return 'RD';
+    if (t === 'AGP003') return 'FD';
+    if (t === 'AGP004') return 'MIS';
+    if (t === 'AGP005') return 'PIGMY';
+    if (t === 'AGP006') return 'CA';
+    return t;
+  };
+
+  const accountType = getFriendlyType(rawType) === 'CUR' || getFriendlyType(rawType) === 'CA' ? 'CA' : (getFriendlyType(rawType) === 'PIGMY' ? 'PIGMY' : getFriendlyType(rawType));
   const theme = ACCOUNT_THEMES[accountType] || ACCOUNT_THEMES.SB;
 
-  const { data: myAccountsData, isLoading: loadingMyAccounts } = MemberQueries.useGetMyAccounts();
+  const { data: myAccountsData, isLoading: loadingMyAccounts, refetch: refetchAccounts } = MemberQueries.useGetMyAccounts();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [paymentProcessed, setPaymentProcessed] = useState(false);
+
+  useEffect(() => {
+    const orderId = searchParams.get('order_id');
+    const orderStatus = searchParams.get('order_status');
+
+    if (orderId && orderStatus && !paymentProcessed) {
+      setPaymentProcessed(true);
+      // Clear params first so this effect cannot re-trigger
+      setSearchParams({}, { replace: true });
+      refetchAccounts();
+    }
+  }, [searchParams, paymentProcessed, setSearchParams, refetchAccounts]);
+
   const accountGroup = myAccountsData?.data?.accountTypes?.find((acc: any) => acc.account_group_name === accountType);
   const existingAccount = accountGroup?.accounts?.[0];
+
+  useEffect(() => {
+    console.log("DEBUG: AccountOpening - Target Account Type:", accountType);
+    console.log("DEBUG: AccountOpening - Found Account Group:", accountGroup);
+    console.log("DEBUG: AccountOpening - Existing Account:", existingAccount);
+  }, [accountType, accountGroup, existingAccount]);
 
   // Dynamically update body class for the entire page
   useEffect(() => {
@@ -101,14 +137,14 @@ const UserAccountOpening = () => {
   const allMyAccounts = useMemo(() => {
     const accounts: any[] = [];
     myAccountsData?.data?.accountTypes?.forEach((group: any) => {
-        group.accounts?.forEach((acc: any) => {
-            if (acc.status?.toLowerCase() === 'active') {
-                accounts.push({
-                    ...acc,
-                    groupName: group.account_group_name
-                });
-            }
-        });
+      group.accounts?.forEach((acc: any) => {
+        if (acc.status?.toLowerCase() === 'active') {
+          accounts.push({
+            ...acc,
+            groupName: group.account_group_name
+          });
+        }
+      });
     });
     return accounts;
   }, [myAccountsData]);
@@ -122,7 +158,7 @@ const UserAccountOpening = () => {
   const filteredTransactions = useMemo(() => {
     if (!searchQuery) return transactions;
     const query = searchQuery.toLowerCase();
-    return transactions.filter((tx: any) => 
+    return transactions.filter((tx: any) =>
       Object.values(tx).some(val => val?.toString().toLowerCase().includes(query))
     );
   }, [transactions, searchQuery]);
@@ -173,50 +209,52 @@ const UserAccountOpening = () => {
   const handleSelfTransfer = async () => {
     if (!existingAccount) return;
     if (!targetAccountNo) {
-        toast.error('Please select a target account');
-        return;
+      toast.error('Please select a target account');
+      return;
     }
     if (!transferAmount || parseFloat(transferAmount) <= 0) {
-        toast.error('Please enter a valid amount');
-        return;
+      toast.error('Please enter a valid amount');
+      return;
     }
 
     const targetAccount = allMyAccounts.find(acc => acc.account_no === targetAccountNo);
     if (!targetAccount) return;
 
     if (targetAccount.account_no === existingAccount.account_no) {
-        toast.error('Cannot transfer to the same account');
-        return;
+      toast.error('Cannot transfer to the same account');
+      return;
     }
 
     try {
-        await transferMoneyMutation.mutateAsync({
-            from: {
-                member_id: memberId,
-                account_id: existingAccount.account_id || existingAccount._id,
-                account_no: existingAccount.account_no,
-                account_type: existingAccount.account_type || accountType
-            },
-            to: {
-                member_id: memberId,
-                account_id: targetAccount.account_id || targetAccount._id,
-                account_no: targetAccount.account_no,
-                account_type: targetAccount.account_type || targetAccount.groupName
-            },
-            amount: parseFloat(transferAmount)
-        });
-        setTransferDialogOpen(false);
-        setTransferAmount('');
-        setTargetAccountNo('');
+      await transferMoneyMutation.mutateAsync({
+        from: {
+          member_id: memberId,
+          account_id: existingAccount.account_id || existingAccount._id,
+          account_no: existingAccount.account_no,
+          account_type: existingAccount.account_type || accountType
+        },
+        to: {
+          member_id: memberId,
+          account_id: targetAccount.account_id || targetAccount._id,
+          account_no: targetAccount.account_no,
+          account_type: targetAccount.account_type || targetAccount.groupName
+        },
+        amount: parseFloat(transferAmount)
+      });
+      setTransferDialogOpen(false);
+      setTransferAmount('');
+      setTargetAccountNo('');
     } catch (error) {
-        // Error handled in mutation
+      // Error handled in mutation
     }
   };
 
+  const [addMoneyOpen, setAddMoneyOpen] = useState(false);
+
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      background: 'transparent', 
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'transparent',
       pt: { xs: 2, md: 4 },
       pb: 8,
       px: { xs: 1, sm: 2 },
@@ -225,7 +263,7 @@ const UserAccountOpening = () => {
       <Container maxWidth="lg">
         {/* Top Header with Back Button */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-          <IconButton 
+          <IconButton
             onClick={() => navigate('/user/dashboard')}
             sx={{ bgcolor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', '&:hover': { bgcolor: '#f1f5f9' } }}
           >
@@ -237,8 +275,8 @@ const UserAccountOpening = () => {
         </Box>
 
         {/* Main Form Card */}
-        <Paper elevation={0} sx={{ 
-          p: { xs: 1.5, sm: 3, md: 4 }, 
+        <Paper elevation={0} sx={{
+          p: { xs: 1.5, sm: 3, md: 4 },
           borderRadius: '24px',
           border: `1px solid ${theme.primary}15`,
           boxShadow: '0 10px 40px rgba(0,0,0,0.03)',
@@ -255,9 +293,9 @@ const UserAccountOpening = () => {
                 {/* Account Overview Header */}
                 <Grid container spacing={3} sx={{ mb: 4 }}>
                   <Grid item xs={12} md={8}>
-                    <Paper elevation={0} sx={{ 
-                      p: 3, 
-                      borderRadius: '24px', 
+                    <Paper elevation={0} sx={{
+                      p: 3,
+                      borderRadius: '24px',
                       background: theme.gradient,
                       color: 'white',
                       display: 'flex',
@@ -268,14 +306,14 @@ const UserAccountOpening = () => {
                       boxShadow: theme.shadow
                     }}>
                       {/* Decorative Circle */}
-                      <Box sx={{ 
-                        position: 'absolute', 
-                        top: -40, 
-                        right: -40, 
-                        width: 150, 
-                        height: 150, 
-                        borderRadius: '50%', 
-                        background: 'rgba(255,255,255,0.1)' 
+                      <Box sx={{
+                        position: 'absolute',
+                        top: -40,
+                        right: -40,
+                        width: 150,
+                        height: 150,
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.1)'
                       }} />
 
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -315,10 +353,10 @@ const UserAccountOpening = () => {
                             </IconButton>
                           </Box>
                         </Box>
-                        <Box sx={{ 
-                          px: 2, 
-                          py: 0.5, 
-                          borderRadius: '12px', 
+                        <Box sx={{
+                          px: 2,
+                          py: 0.5,
+                          borderRadius: '12px',
                           bgcolor: existingAccount.status?.toLowerCase() === 'active' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)',
                           color: existingAccount.status?.toLowerCase() === 'active' ? '#4ade80' : '#f87171',
                           fontSize: '0.75rem',
@@ -332,9 +370,9 @@ const UserAccountOpening = () => {
                   </Grid>
 
                   <Grid item xs={12} md={4}>
-                    <Paper elevation={0} sx={{ 
-                      p: 3, 
-                      borderRadius: '24px', 
+                    <Paper elevation={0} sx={{
+                      p: 3,
+                      borderRadius: '24px',
                       bgcolor: theme.light,
                       border: `1px solid ${theme.primary}20`,
                       height: '100%',
@@ -349,12 +387,27 @@ const UserAccountOpening = () => {
                       <Button
                         fullWidth
                         variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => setAddMoneyOpen(true)}
+                        sx={{
+                          borderRadius: '12px',
+                          py: 1.5,
+                          bgcolor: '#059669', // Emerald
+                          '&:hover': { bgcolor: '#047857' },
+                          boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
+                        }}
+                      >
+                        Add Money
+                      </Button>
+                      <Button
+                        fullWidth
+                        variant="contained"
                         startIcon={<CompareArrowsIcon />}
                         onClick={() => setTransferDialogOpen(true)}
-                        sx={{ 
-                          borderRadius: '12px', 
-                          py: 1.5, 
-                          bgcolor: theme.primary, 
+                        sx={{
+                          borderRadius: '12px',
+                          py: 1.5,
+                          bgcolor: theme.primary,
                           '&:hover': { bgcolor: theme.secondary },
                           boxShadow: theme.shadow
                         }}
@@ -367,10 +420,10 @@ const UserAccountOpening = () => {
                         startIcon={<DownloadIcon />}
                         onClick={handleDownloadStatement}
                         disabled={loadingTx}
-                        sx={{ 
-                          borderRadius: '12px', 
-                          py: 1.5, 
-                          bgcolor: '#1e293b', 
+                        sx={{
+                          borderRadius: '12px',
+                          py: 1.5,
+                          bgcolor: '#1e293b',
                           '&:hover': { bgcolor: '#0f172a' }
                         }}
                       >
@@ -381,8 +434,8 @@ const UserAccountOpening = () => {
                         variant="outlined"
                         startIcon={<HistoryIcon />}
                         onClick={() => navigate(`/user/transactions?type=${existingAccount.account_type}`)}
-                        sx={{ 
-                          borderRadius: '12px', 
+                        sx={{
+                          borderRadius: '12px',
                           py: 1.5,
                           borderColor: theme.primary,
                           color: theme.primary,
@@ -409,13 +462,13 @@ const UserAccountOpening = () => {
                       size="small"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      sx={{ 
+                      sx={{
                         width: 250,
                         '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: 'white' }
                       }}
                     />
                   </Box>
-                  
+
                   <Paper elevation={0} sx={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                     <DataTable
                       columns={getTransactionColumns()}
@@ -430,8 +483,8 @@ const UserAccountOpening = () => {
                 </Box>
               </Box>
             ) : (
-              <AccountOpeningForm 
-                defaultAccountType={accountType} 
+              <AccountOpeningForm
+                defaultAccountType={accountType}
                 title={`${accountType} Account Opening`}
                 prefillMemberId={memberId || undefined}
                 readOnlyMemberId={true}
@@ -443,72 +496,81 @@ const UserAccountOpening = () => {
       </Container>
 
       {/* Self Transfer Dialog */}
-      <Dialog 
-        open={transferDialogOpen} 
+      <Dialog
+        open={transferDialogOpen}
         onClose={() => setTransferDialogOpen(false)}
         maxWidth="xs"
         fullWidth
         PaperProps={{ sx: { borderRadius: '24px' } }}
       >
         <DialogTitle sx={{ fontWeight: 800, color: theme.primary, pb: 1 }}>
-            Self Transfer
+          Self Transfer
         </DialogTitle>
         <DialogContent>
-            <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
-                Transfer funds from your <strong>{accountType}</strong> account to another of your accounts.
-            </Typography>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-                <FormControl fullWidth>
-                    <InputLabel>Transfer To Account</InputLabel>
-                    <Select
-                        value={targetAccountNo}
-                        label="Transfer To Account"
-                        onChange={(e) => setTargetAccountNo(e.target.value)}
-                        sx={{ borderRadius: '12px' }}
-                    >
-                        {allMyAccounts
-                            .filter(acc => acc.account_no !== existingAccount?.account_no)
-                            .map((acc) => (
-                                <MenuItem key={acc._id} value={acc.account_no}>
-                                    {acc.groupName} - {acc.account_no} (Bal: ₹{acc.account_amount?.toLocaleString()})
-                                </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+          <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
+            Transfer funds from your <strong>{accountType}</strong> account to another of your accounts.
+          </Typography>
 
-                <TextField
-                    label="Amount (₹)"
-                    fullWidth
-                    type="number"
-                    value={transferAmount}
-                    onChange={(e) => setTransferAmount(e.target.value)}
-                    InputProps={{
-                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                    }}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                />
-            </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Transfer To Account</InputLabel>
+              <Select
+                value={targetAccountNo}
+                label="Transfer To Account"
+                onChange={(e) => setTargetAccountNo(e.target.value)}
+                sx={{ borderRadius: '12px' }}
+              >
+                {allMyAccounts
+                  .filter(acc => acc.account_no !== existingAccount?.account_no)
+                  .map((acc) => (
+                    <MenuItem key={acc._id} value={acc.account_no}>
+                      {acc.groupName} - {acc.account_no} (Bal: ₹{acc.account_amount?.toLocaleString()})
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Amount (₹)"
+              fullWidth
+              type="number"
+              value={transferAmount}
+              onChange={(e) => setTransferAmount(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+              }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+            />
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-            <Button onClick={() => setTransferDialogOpen(false)} sx={{ color: '#64748b' }}>
-                Cancel
-            </Button>
-            <Button 
-                variant="contained" 
-                onClick={handleSelfTransfer}
-                disabled={transferMoneyMutation.isPending || !transferAmount || !targetAccountNo}
-                sx={{ 
-                    borderRadius: '12px', 
-                    bgcolor: theme.primary,
-                    '&:hover': { bgcolor: theme.secondary },
-                    px: 3
-                }}
-            >
-                {transferMoneyMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Transfer Now'}
-            </Button>
+          <Button onClick={() => setTransferDialogOpen(false)} sx={{ color: '#64748b' }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSelfTransfer}
+            disabled={transferMoneyMutation.isPending || !transferAmount || !targetAccountNo}
+            sx={{
+              borderRadius: '12px',
+              bgcolor: theme.primary,
+              '&:hover': { bgcolor: theme.secondary },
+              px: 3
+            }}
+          >
+            {transferMoneyMutation.isPending ? <CircularProgress size={24} color="inherit" /> : 'Transfer Now'}
+          </Button>
         </DialogActions>
       </Dialog>
+
+      <AddMoneyDialog
+        open={addMoneyOpen}
+        onClose={() => setAddMoneyOpen(false)}
+        selectedAccount={existingAccount ? {
+          ...existingAccount,
+          account_type: existingAccount.account_type || accountType
+        } : null}
+      />
     </Box>
   );
 };
