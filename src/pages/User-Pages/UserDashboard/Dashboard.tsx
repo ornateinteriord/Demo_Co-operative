@@ -16,20 +16,15 @@ import ShareIcon from '@mui/icons-material/Share';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import InventoryIcon from '@mui/icons-material/Inventory';
-import AccountTreeIcon from '@mui/icons-material/AccountTree';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import GroupsIcon from '@mui/icons-material/Groups';
-import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
-import HubIcon from '@mui/icons-material/Hub';
+import LockIcon from '@mui/icons-material/Lock';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SavingsIcon from '@mui/icons-material/Savings';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import GroupsIcon from '@mui/icons-material/Groups';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
-import LockIcon from '@mui/icons-material/Lock';
+import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 
 import TokenService from '../../../api/token/tokenService';
@@ -48,14 +43,6 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const [paymentProcessed, setPaymentProcessed] = useState(false);
   const showQuickAccess = searchParams.get('view') === 'od';
-
-  const setShowQuickAccess = (show: boolean) => {
-    if (show) {
-      setSearchParams({ view: 'od' });
-    } else {
-      setSearchParams({});
-    }
-  };
 
   const memberId = TokenService.getMemberId();
   const { data: walletOverview } = useGetWalletOverview(memberId);

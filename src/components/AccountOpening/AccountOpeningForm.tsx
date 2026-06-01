@@ -21,7 +21,6 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { toast } from 'react-toastify';
 import * as AdminQueries from '../../queries/admin';
 import * as MemberQueries from '../../queries/Member';
-import { useCreatePaymentOrder } from '../../queries/Wallet/useWallet';
 
 export type AccountType = 'SB' | 'CA' | 'RD' | 'FD' | 'PIGMY' | 'MIS' | string;
 
