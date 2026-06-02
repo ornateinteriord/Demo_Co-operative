@@ -132,7 +132,7 @@ const Payments: React.FC = () => {
       minWidth: 130,
       renderCell: (row: Payment) => (
         <Typography variant="body2" sx={{ fontWeight: 500, color: '#475569' }}>
-          {row.account_no}
+          {row.account_no && String(row.account_no) !== 'NaN' ? row.account_no : '-'}
         </Typography>
       ),
     },

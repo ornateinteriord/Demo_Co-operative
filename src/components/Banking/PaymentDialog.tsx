@@ -329,7 +329,7 @@ const PaymentDialog: React.FC<PaymentDialogProps> = ({ open, onClose, paymentId 
                                     <MenuItem value="">Select Account</MenuItem>
                                     {memberAccounts.data.map((acc: any) => (
                                         <MenuItem key={acc._id} value={acc._id}>
-                                            {acc.account_group_name} - {acc.account_no}
+                                            {acc.account_group_name}{acc.account_no && String(acc.account_no) !== 'NaN' && String(acc.account_no).trim() !== '' ? ` - ${acc.account_no}` : ''}
                                         </MenuItem>
                                     ))}
                                 </TextField>
