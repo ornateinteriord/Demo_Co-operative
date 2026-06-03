@@ -213,7 +213,7 @@ export const getDailyPayoutColumns = () => [
   },
   {
     name: "Description",
-    selector: (row: any) => row.description,
+    selector: (row: any) => (row.description || "").replace(/\/300/g, '/120'),
     sortable: true,
   },
   {
@@ -247,7 +247,7 @@ export const getTransactionColumns = () => [
   },
   {
     name: "Description",
-    selector: (row: any) => row.description || "-",
+    selector: (row: any) => (row.description || "-").replace(/\/300/g, '/120'),
     sortable: true,
     wrap: true,
   },
@@ -312,7 +312,7 @@ export const getBankTransactionColumns = () => [
   },
   {
     name: "Description",
-    selector: (row: any) => row.description,
+    selector: (row: any) => (row.description || "").replace(/\/300/g, '/120'),
     sortable: true,
   },
   {
@@ -345,7 +345,7 @@ export const getJournalEntriesColumns = () => [
   },
   {
     name: "Description",
-    selector: (row: any) => row.description,
+    selector: (row: any) => (row.description || "").replace(/\/300/g, '/120'),
     sortable: true,
   },
   {

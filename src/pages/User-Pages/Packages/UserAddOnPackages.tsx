@@ -83,7 +83,7 @@ export const UserAddOnPackages = () => {
               <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2.5 }}>
                 <AccountBalanceWalletIcon sx={{ fontSize: 32, color: '#ed6c02', mr: 2, mt: 0.5 }} />
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                  Purchase an independent add-on package with its own 300-day ROI cycle.
+                  Purchase an independent add-on package with its own 120-day ROI cycle.
                   Runs parallel to your primary investment!
                 </Typography>
               </Box>
@@ -204,10 +204,10 @@ export const UserAddOnPackages = () => {
               const pkgId = pkg.package_id || pkg.request_id || 'N/A';
               const totalDays = pkg.isFD 
                 ? (moment(pkg.date_of_maturity).diff(moment(pkg.roi_start_date), 'days') || 1)
-                : 300;
+                : 120;
               const pkgProgress = pkg.roi_payout_count ? Math.min((pkg.roi_payout_count / totalDays) * 100, 100) : 0;
               const pkgTarget = pkg.roi_payout_target || (pkgAmount * 2);
-              const pkgDailyROI = pkgTarget > 0 ? parseFloat((pkgTarget / 300).toFixed(2)) : 0;
+              const pkgDailyROI = pkgTarget > 0 ? parseFloat((pkgTarget / 120).toFixed(2)) : 0;
 
               return (
                 <Grid item xs={12} sm={6} md={4} key={pkgId}>
@@ -253,7 +253,7 @@ export const UserAddOnPackages = () => {
 
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                         <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 600 }}>
-                          {pkg.isFD ? `Matures ${moment(pkg.date_of_maturity).format('DD MMM YYYY')}` : `Day ${pkg.roi_payout_count} of 300`}
+                          {pkg.isFD ? `Matures ${moment(pkg.date_of_maturity).format('DD MMM YYYY')}` : `Day ${pkg.roi_payout_count} of 120`}
                         </Typography>
                         <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 700 }}>{pkgProgress.toFixed(0)}%</Typography>
                       </Box>

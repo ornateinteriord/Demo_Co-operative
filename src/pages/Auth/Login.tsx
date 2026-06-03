@@ -19,7 +19,11 @@ import { LoadingComponent } from "../../App";
 import { useLoginMutation } from "../../api/Auth";
 import ForgotPasswordForm from "./components/ForgotPasswordForm";
 
-const Login = () => {
+interface LoginProps {
+  isModal?: boolean;
+}
+
+const Login = ({ isModal = false }: LoginProps) => {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -84,7 +88,12 @@ const Login = () => {
 
   return (
     <Box
-      sx={{
+      sx={isModal ? {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2rem 0"
+      } : {
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
@@ -96,7 +105,9 @@ const Login = () => {
       }}
     >
       {/* Abstract Background Design Elements for modern feel */}
-      <Box
+      {!isModal && (
+        <>
+          <Box
         sx={{
           position: "absolute",
           top: "-10%",
@@ -120,8 +131,10 @@ const Login = () => {
           filter: "blur(60px)",
         }}
       />
+        </>
+      )}
 
-      <Container component="main" maxWidth="xs" sx={{ position: "relative", zIndex: 1 }}>
+      <Container component="main" maxWidth="xs" sx={{ position: "relative", zIndex: 1, padding: isModal ? 0 : undefined }}>
         <Paper
           elevation={24}
           sx={{

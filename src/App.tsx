@@ -42,7 +42,7 @@ import MobileBottomNav from "./components/common/MobileBottomNav";
 
 
 // public pages
-// const Home = lazy(() => import("./pages/Home/Home"));
+const Home = lazy(() => import("./pages/Home/Home"));
 const Login = lazy(() => import("./pages/Auth/Login"));
 const Register = lazy(() => import("./pages/Auth/Register"));
 const RecoverPassword = lazy(() => import("./pages/Auth/RecoverPassword"))
@@ -329,7 +329,7 @@ const RoutesProvider = ({
             <Route path="/impersonate" element={<Impersonate />} />
             {/* public routes */}
             <Route element={<PublicRoute />}>
-              <Route index element={<Login />} />
+              <Route index element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/recover-password" element={<RecoverPassword />} />
